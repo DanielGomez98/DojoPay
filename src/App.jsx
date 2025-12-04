@@ -1,18 +1,23 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
-// IMPORTANTE: Asegurarnos de importar todos los componentes de la gráfica
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
-// --- ICONOS ---
+// --- ICONOS SVG ---
 const IconHome = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
 )
 const IconUsers = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
 )
+const IconChecklist = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+)
 const IconLogout = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+)
+const IconTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
 )
 
 // --- LOGIN ---
@@ -57,13 +62,18 @@ function LoginScreen() {
 
 // --- DASHBOARD ---
 function Dashboard({ session, rolUsuario }) {
-  const [vistaActual, setVistaActual] = useState('inicio')
+  const [vistaActual, setVistaActual] = useState('inicio') // 'inicio', 'asistencia', 'alumnos'
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
-  const [metricas, setMetricas] = useState({ totalDeuda: 0, totalAlumnos: 0, ingresosMes: 0 })
+  const [metricas, setMetricas] = useState({ totalDeuda: 0, totalAlumnos: 0, ingresosMes: 0, asistenciaHoy: 0 })
   const [datosGrafica, setDatosGrafica] = useState([])
+  const [historial, setHistorial] = useState([])
   const [busqueda, setBusqueda] = useState('')
   
+  // Asistencia
+  const [seleccionados, setSeleccionados] = useState([]) // IDs para asistencia
+
+  // Estados Formulario
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [idEdicion, setIdEdicion] = useState(null)
@@ -80,7 +90,22 @@ function Dashboard({ session, rolUsuario }) {
       const seisMesesAtras = new Date()
       seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 5)
       seisMesesAtras.setDate(1)
-      const { data: pagosRaw } = await supabase.from('pagos').select('monto, alumno_id, fecha_pago').gte('fecha_pago', seisMesesAtras.toISOString())
+      
+      const { data: pagosRaw } = await supabase.from('pagos').select('id, monto, alumno_id, fecha_pago').gte('fecha_pago', seisMesesAtras.toISOString())
+      
+      // Obtener asistencia de hoy
+      const fechaHoySQL = hoy.toISOString().split('T')[0]
+      const { count: conteoAsistencia } = await supabase.from('asistencias').select('*', { count: 'exact', head: true }).eq('fecha', fechaHoySQL)
+
+      // Historial Reciente (con JOIN manual simple)
+      const ultimosPagos = pagosRaw
+        .sort((a,b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
+        .slice(0, 10)
+        .map(p => {
+          const alum = alumnosData.find(a => a.id === p.alumno_id)
+          return { ...p, nombre_alumno: alum ? alum.nombre : 'Desconocido' }
+        })
+      setHistorial(ultimosPagos)
 
       let deuda = 0, ingresos = 0
       const pagosEsteMes = pagosRaw.filter(p => new Date(p.fecha_pago) >= new Date(primerDiaMes))
@@ -93,7 +118,7 @@ function Dashboard({ session, rolUsuario }) {
       })
 
       setAlumnos(alumnosProcesados)
-      setMetricas({ totalAlumnos: alumnosData.length, totalDeuda: deuda, ingresosMes: ingresos })
+      setMetricas({ totalAlumnos: alumnosData.length, totalDeuda: deuda, ingresosMes: ingresos, asistenciaHoy: conteoAsistencia || 0 })
 
       const mapaMeses = {}
       for (let i = 5; i >= 0; i--) {
@@ -120,6 +145,51 @@ function Dashboard({ session, rolUsuario }) {
     return data.publicUrl
   }
 
+  // --- ASISTENCIA ---
+  function toggleSeleccion(id) {
+    if (seleccionados.includes(id)) {
+      setSeleccionados(seleccionados.filter(sid => sid !== id))
+    } else {
+      setSeleccionados([...seleccionados, id])
+    }
+  }
+
+  async function guardarAsistencia() {
+    if (seleccionados.length === 0) return toast.warning("Selecciona al menos un alumno")
+    
+    const inserts = seleccionados.map(id => ({ alumno_id: id }))
+    const { error } = await supabase.from('asistencias').insert(inserts)
+    
+    if (error) toast.error("Error al guardar")
+    else {
+      toast.success(`${seleccionados.length} asistencias guardadas`)
+      setSeleccionados([])
+      fetchDatos()
+    }
+  }
+
+  // --- PAGOS ---
+  function confirmarPago(id, monto) {
+    toast(`¿Cobrar $${monto}?`, {
+      action: { label: "CONFIRMAR", onClick: async () => { const { error } = await supabase.from('pagos').insert([{alumno_id:id, monto}]); if (!error) { fetchDatos(); toast.success(`Pago registrado`) } } }
+    })
+  }
+
+  async function borrarPago(pagoId) {
+    toast("¿Borrar este pago?", {
+      description: "Esta acción restará el dinero.",
+      action: {
+        label: "BORRAR",
+        onClick: async () => {
+          const { error } = await supabase.from('pagos').delete().eq('id', pagoId)
+          if (!error) { fetchDatos(); toast.success("Pago eliminado") }
+          else toast.error("Error al borrar")
+        }
+      }
+    })
+  }
+
+  // --- CRUD ALUMNOS ---
   function abrirFormularioCrear() { setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) }
   function abrirFormularioEditar(a) { setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) }
 
@@ -134,12 +204,6 @@ function Dashboard({ session, rolUsuario }) {
       setMostrarFormulario(false); fetchDatos()
     }
     toast.promise(guardarPromesa(), { loading: 'Guardando...', success: '¡Guardado!', error: 'Error' })
-  }
-
-  function confirmarPago(id, monto) {
-    toast(`¿Cobrar $${monto}?`, {
-      action: { label: "CONFIRMAR", onClick: async () => { const { error } = await supabase.from('pagos').insert([{alumno_id:id, monto}]); if (!error) { fetchDatos(); toast.success(`Pago registrado`) } } }
-    })
   }
   
   function enviarWhatsApp(tel, nom, monto) { 
@@ -174,8 +238,14 @@ function Dashboard({ session, rolUsuario }) {
     btnFloatInner: { width: '100%', maxWidth: MAX_WIDTH, display: 'flex', justifyContent: 'flex-end', paddingRight: '20px', boxSizing: 'border-box' },
     btnFloat: { background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents: 'auto' },
     navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
-    fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
+    fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' },
+    // Historial
+    histItem: { padding: '12px 0', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' },
+    btnDel: { background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex' }
   }
+
+  // TITULOS VISTAS
+  const titulos = { inicio: 'Resumen', asistencia: 'Pasar Lista', alumnos: 'Directorio' }
 
   return (
     <div style={styles.globalWrapper}>
@@ -183,7 +253,7 @@ function Dashboard({ session, rolUsuario }) {
         <Toaster richColors position="top-center" />
         
         <div style={styles.topBar}>
-          <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>{vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}</div>
+          <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>{titulos[vistaActual]}</div>
           <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}><IconLogout /></button>
         </div>
 
@@ -195,11 +265,11 @@ function Dashboard({ session, rolUsuario }) {
                   <div style={styles.statContainer}>
                     <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
                     <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
-                    <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ALUMNOS</div></div>
+                    {/* NUEVO KPI DE ASISTENCIA */}
+                    <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.asistenciaHoy}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ASIST. HOY</div></div>
                   </div>
                   
                   <div style={styles.chartContainer}>
-                    {/* --- AQUÍ ESTÁ LA CORRECCIÓN: GRÁFICA COMPLETA --- */}
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={datosGrafica} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -210,13 +280,31 @@ function Dashboard({ session, rolUsuario }) {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+
+                  {/* NUEVO: HISTORIAL CON BORRADO */}
+                  <div style={{background:'white', padding:'20px', borderRadius:'16px', marginBottom:'25px'}}>
+                    <h4 style={{margin:'0 0 15px 0', fontSize:'14px', color:'#64748b'}}>ÚLTIMOS PAGOS</h4>
+                    {historial.map(p => (
+                      <div key={p.id} style={styles.histItem}>
+                        <div>
+                          <div style={{fontWeight:'600'}}>{p.nombre_alumno}</div>
+                          <div style={{fontSize:'11px', color:'#94a3b8'}}>{new Date(p.fecha_pago).toLocaleDateString()}</div>
+                        </div>
+                        <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
+                          <div style={{color:'#10b981', fontWeight:'700'}}>+${p.monto}</div>
+                          {/* BOTÓN BASURA */}
+                          <button onClick={() => borrarPago(p.id)} style={styles.btnDel}><IconTrash /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
 
               <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
               
               {listaParaMostrar.length === 0 ? (
-                <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo al día!</p></div>
+                <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo el mundo está al día!</p></div>
               ) : (
                 listaParaMostrar.map((a) => (
                   <div key={a.id} style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
@@ -232,6 +320,42 @@ function Dashboard({ session, rolUsuario }) {
                   </div>
                 ))
               )}
+            </>
+          )}
+
+          {/* --- NUEVA VISTA: ASISTENCIA --- */}
+          {vistaActual === 'asistencia' && (
+            <>
+              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
+                <h3 style={{margin:0, fontSize:'16px'}}>Selecciona a los presentes</h3>
+                <div style={{background:'#eff6ff', color:'#3b82f6', padding:'5px 10px', borderRadius:'8px', fontSize:'12px', fontWeight:'bold'}}>{new Date().toLocaleDateString()}</div>
+              </div>
+
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:'12px', marginBottom:'80px'}}>
+                {alumnos.map(a => {
+                  const isSelected = seleccionados.includes(a.id)
+                  return (
+                    <div key={a.id} onClick={() => toggleSeleccion(a.id)} style={{
+                      background: isSelected ? '#eff6ff' : 'white',
+                      border: isSelected ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                      borderRadius: '12px', padding: '15px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.1s'
+                    }}>
+                      {a.foto_url ? <img src={a.foto_url} style={{width:'50px', height:'50px', borderRadius:'50%', objectFit:'cover', margin:'0 auto 10px'}} /> : <div style={{width:'50px', height:'50px', borderRadius:'50%', background: a.cinta === 'Negra' ? '#333' : '#ddd', margin:'0 auto 10px', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontWeight:'bold'}}>{getIniciales(a.nombre)}</div>}
+                      <div style={{fontWeight:'600', fontSize:'14px', color: isSelected ? '#3b82f6' : '#333'}}>{a.nombre}</div>
+                      <div style={{fontSize:'11px', color:'#64748b'}}>{a.cinta}</div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Botón flotante para guardar asistencia */}
+              <div style={styles.btnFloatWrapper}>
+                <div style={styles.btnFloatInner}>
+                  <button onClick={guardarAsistencia} style={{...styles.btnFloat, width:'auto', padding:'0 20px', borderRadius:'30px', fontSize:'14px', fontWeight:'bold'}}>
+                    GUARDAR ({seleccionados.length})
+                  </button>
+                </div>
+              </div>
             </>
           )}
 
@@ -261,6 +385,9 @@ function Dashboard({ session, rolUsuario }) {
           <div style={styles.bottomBarInner}>
             <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
               <IconHome active={vistaActual === 'inicio'} /> INICIO
+            </button>
+            <button onClick={() => setVistaActual('asistencia')} style={{...styles.navItem, color: vistaActual === 'asistencia' ? '#3b82f6' : '#94a3b8'}}>
+              <IconChecklist active={vistaActual === 'asistencia'} /> ASISTENCIA
             </button>
             <button onClick={() => setVistaActual('alumnos')} style={{...styles.navItem, color: vistaActual === 'alumnos' ? '#3b82f6' : '#94a3b8'}}>
               <IconUsers active={vistaActual === 'alumnos'} /> ALUMNOS
