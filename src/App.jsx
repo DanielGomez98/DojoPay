@@ -3,7 +3,18 @@ import { supabase } from './supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
-// --- LOGIN SCREEN ---
+// --- ICONOS SVG (Directos en código para asegurar que se vean) ---
+const IconHome = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+)
+const IconUsers = ({ active }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+)
+const IconLogout = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+)
+
+// --- LOGIN ---
 function LoginScreen() {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
@@ -14,7 +25,6 @@ function LoginScreen() {
     setLoading(true)
     let emailFinal = usuario.trim().toLowerCase()
     if (!emailFinal.includes('@')) emailFinal = `${emailFinal}@dojo.com`
-
     const { error } = await supabase.auth.signInWithPassword({ email: emailFinal, password })
     if (error) toast.error("Credenciales incorrectas")
     else toast.success("¡Bienvenido al Dojo!")
@@ -44,10 +54,10 @@ function LoginScreen() {
   )
 }
 
-// --- DASHBOARD ---
+// --- APP PRINCIPAL ---
 function Dashboard({ session, rolUsuario }) {
+  const [vistaActual, setVistaActual] = useState('inicio') // 'inicio' | 'alumnos'
   const [alumnos, setAlumnos] = useState([])
-  const [historial, setHistorial] = useState([])
   const [loading, setLoading] = useState(true)
   const [metricas, setMetricas] = useState({ totalDeuda: 0, totalAlumnos: 0, ingresosMes: 0 })
   const [datosGrafica, setDatosGrafica] = useState([])
@@ -57,14 +67,7 @@ function Dashboard({ session, rolUsuario }) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [idEdicion, setIdEdicion] = useState(null)
-  
-  // Campos
-  const [nombre, setNombre] = useState('')
-  const [telefono, setTelefono] = useState('')
-  const [cinta, setCinta] = useState('Blanca')
-  const [monto, setMonto] = useState(600)
-  const [archivoFoto, setArchivoFoto] = useState(null) // Nuevo estado para el archivo
-  const [fotoPreview, setFotoPreview] = useState(null) // Para mostrar la foto actual
+  const [nombre, setNombre] = useState(''); const [telefono, setTelefono] = useState(''); const [cinta, setCinta] = useState('Blanca'); const [monto, setMonto] = useState(600); const [archivoFoto, setArchivoFoto] = useState(null); const [fotoPreview, setFotoPreview] = useState(null)
 
   useEffect(() => { fetchDatos() }, [])
 
@@ -80,9 +83,6 @@ function Dashboard({ session, rolUsuario }) {
       seisMesesAtras.setDate(1)
 
       const { data: pagosRaw } = await supabase.from('pagos').select('monto, alumno_id, fecha_pago').gte('fecha_pago', seisMesesAtras.toISOString())
-      const { data: ultimosPagos } = await supabase.from('pagos').select('id, monto, fecha_pago, alumnos(nombre)').order('fecha_pago', { ascending: false }).limit(10)
-
-      setHistorial(ultimosPagos || [])
 
       let deuda = 0, ingresos = 0
       const pagosEsteMes = pagosRaw.filter(p => new Date(p.fecha_pago) >= new Date(primerDiaMes))
@@ -112,7 +112,7 @@ function Dashboard({ session, rolUsuario }) {
     finally { setLoading(false) }
   }
 
-  // --- LÓGICA DE FOTOS ---
+  // --- LOGICA FOTOS ---
   async function subirFoto() {
     if (!archivoFoto) return null
     const ext = archivoFoto.name.split('.').pop()
@@ -124,64 +124,25 @@ function Dashboard({ session, rolUsuario }) {
   }
 
   // --- CRUD ---
-  function abrirFormularioCrear() { 
-    setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null);
-    setMostrarFormulario(true) 
-  }
-  function abrirFormularioEditar(a) { 
-    setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url);
-    setMostrarFormulario(true) 
-  }
+  function abrirFormularioCrear() { setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) }
+  function abrirFormularioEditar(a) { setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) }
 
   async function guardarAlumno(e) {
     e.preventDefault()
-    
     const guardarPromesa = async () => {
       let urlFinal = fotoPreview
-      
-      // 1. Si hay archivo nuevo, subirlo
-      if (archivoFoto) {
-        urlFinal = await subirFoto()
-      }
-
+      if (archivoFoto) urlFinal = await subirFoto()
       const datos = { nombre, telefono, cinta, monto_mensualidad: monto, activo: true, foto_url: urlFinal }
-      
-      // 2. Guardar en base de datos
       const { error } = modoEdicion ? await supabase.from('alumnos').update(datos).eq('id', idEdicion) : await supabase.from('alumnos').insert([datos])
       if (error) throw error
-      
-      setMostrarFormulario(false)
-      fetchDatos()
+      setMostrarFormulario(false); fetchDatos()
     }
-
-    toast.promise(guardarPromesa(), {
-      loading: 'Guardando datos y foto...',
-      success: '¡Alumno guardado!',
-      error: (err) => `Error: ${err.message}`
-    })
-  }
-
-  function confirmarBaja() {
-    toast("¿Dar de baja?", {
-      action: {
-        label: "Sí, Borrar",
-        onClick: async () => {
-          await supabase.from('alumnos').update({activo:false}).eq('id', idEdicion)
-          setMostrarFormulario(false); fetchDatos(); toast.success("Alumno dado de baja")
-        }
-      }
-    })
+    toast.promise(guardarPromesa(), { loading: 'Guardando...', success: '¡Guardado!', error: 'Error' })
   }
 
   function confirmarPago(id, monto) {
     toast(`¿Cobrar $${monto}?`, {
-      action: {
-        label: "CONFIRMAR",
-        onClick: async () => {
-          const { error } = await supabase.from('pagos').insert([{alumno_id:id, monto}])
-          if (!error) { fetchDatos(); toast.success(`Pago registrado`) }
-        }
-      }
+      action: { label: "CONFIRMAR", onClick: async () => { const { error } = await supabase.from('pagos').insert([{alumno_id:id, monto}]); if (!error) { fetchDatos(); toast.success(`Pago registrado`) } } }
     })
   }
   
@@ -192,117 +153,134 @@ function Dashboard({ session, rolUsuario }) {
   
   async function cerrarSesion() { await supabase.auth.signOut() }
   const getIniciales = (n) => n.split(' ').map(c=>c[0]).join('').substring(0,2).toUpperCase()
-  const alumnosFiltrados = alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
   
+  // --- FILTROS DE VISTA ---
+  // Si estamos en 'inicio', solo mostramos los que NO han pagado
+  // Si estamos en 'alumnos', mostramos TODOS filtrados por búsqueda
+  const listaParaMostrar = vistaActual === 'inicio' 
+    ? alumnos.filter(a => !a.pagado) // Solo deudores
+    : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())) // Todos con filtro
+
   const styles = {
-    layout: { display: 'flex', flexWrap: 'wrap', gap: '25px', maxWidth: '1200px', margin: '0 auto', padding: '20px', alignItems: 'flex-start' },
-    colMain: { flex: '2 1 500px' }, colSide: { flex: '1 1 300px' },
-    card: { background: 'white', borderRadius: '12px', padding: '16px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9' },
-    avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
-    search: { width: '100%', padding: '14px', marginBottom:'20px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing:'border-box' },
-    btnPill: { padding: '6px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '700', transition: 'all 0.2s', textTransform: 'uppercase' },
-    btnNav: { background: '#3b82f6', color: 'white', border: 'none', padding: '8px 18px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' },
-    statBox: { background: 'white', padding: '20px', borderRadius: '16px', flex: 1, boxShadow: '0 2px 4px rgba(0,0,0,0.04)', textAlign: 'center', border: '1px solid #f1f5f9' },
-    chartContainer: { background: 'white', padding: '20px', borderRadius: '16px', marginBottom: '25px', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', border: '1px solid #f1f5f9', height: '300px' },
-    fileInput: { marginBottom: '15px', fontSize: '12px' }
+    layout: { maxWidth: '600px', margin: '0 auto', padding: '20px 20px 100px 20px', background: '#f8fafc', minHeight: '100vh' },
+    card: { background: 'white', borderRadius: '16px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9' },
+    avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
+    search: { width: '100%', padding: '14px', marginBottom:'20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing:'border-box' },
+    statBox: { background: 'white', padding: '15px', borderRadius: '16px', flex: 1, textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    btnFloat: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
+    // Bottom Bar
+    bottomBar: { position:'fixed', bottom:0, left:0, right:0, background:'white', borderTop:'1px solid #e2e8f0', padding:'10px 0', display:'flex', justifyContent:'space-around', alignItems:'center', zIndex:100, paddingBottom:'max(10px, env(safe-area-inset-bottom))' },
+    navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' }
   }
 
   return (
-    <div style={{ fontFamily: '"Inter", sans-serif', background: '#f8fafc', minHeight: '100vh', color: '#334155', paddingBottom:'50px' }}>
-      <Toaster richColors position="bottom-right" />
-      <nav style={{ background: '#1e293b', padding: '15px 0', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ color: 'white', fontWeight: 'bold', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>🥋</span> DojoPay <span style={{fontSize:'10px', background: rolUsuario === 'admin' ? '#ef4444' : '#3b82f6', padding:'2px 6px', borderRadius:'4px'}}>{rolUsuario?.toUpperCase()}</span>
-          </div>
-          <div style={{display:'flex', gap:'10px'}}>
-            <button onClick={cerrarSesion} style={{ background: 'none', border: '1px solid #475569', color: '#cbd5e1', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>Salir</button>
-            <button onClick={abrirFormularioCrear} style={styles.btnNav}>+ NUEVO</button>
-          </div>
+    <div style={{background: '#f8fafc', minHeight: '100vh'}}>
+      <Toaster richColors position="top-center" />
+      
+      {/* TOP BAR */}
+      <div style={{ background: 'white', padding: '15px 20px', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
+          {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
         </div>
-      </nav>
-
-      <div style={styles.layout}>
-        <div style={styles.colMain}>
-          {rolUsuario === 'admin' && (
-            <>
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
-                <div style={styles.statBox}><div style={{fontSize:'24px', fontWeight:'800', color:'#0f172a'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#64748b', fontWeight:'700'}}>ALUMNOS</div></div>
-                <div style={styles.statBox}><div style={{fontSize:'24px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#ef4444', fontWeight:'700'}}>POR COBRAR</div></div>
-                <div style={styles.statBox}><div style={{fontSize:'24px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#10b981', fontWeight:'700'}}>MES ACTUAL</div></div>
-              </div>
-              <div style={styles.chartContainer}>
-                <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#0f172a', fontWeight: '700' }}>INGRESOS SEMESTRALES</h3>
-                <ResponsiveContainer width="100%" height="85%">
-                  <BarChart data={datosGrafica}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="name" tick={{fontSize:12}} axisLine={false} tickLine={false} /><YAxis tick={{fontSize:12}} axisLine={false} tickLine={false} tickFormatter={(v)=>`$${v}`} /><Tooltip cursor={{fill:'#f1f5f9'}} /><Bar dataKey="total" fill="#3b82f6" radius={[4,4,0,0]} barSize={40} /></BarChart>
-                </ResponsiveContainer>
-              </div>
-            </>
-          )}
-
-          <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
-          
-          {loading ? <p>Cargando...</p> : (
-            <div>
-              {alumnosFiltrados.map((a) => (
-                <div key={a.id} style={styles.card}>
-                  {/* AVATAR INTELIGENTE: Foto o Iniciales */}
-                  {a.foto_url ? (
-                    <img src={a.foto_url} alt={a.nombre} style={{ ...styles.avatar, background: 'transparent' }} />
-                  ) : (
-                    <div style={{ ...styles.avatar, background: a.pagado ? '#10b981' : '#f43f5e' }}>{getIniciales(a.nombre)}</div>
-                  )}
-                  
-                  <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => abrirFormularioEditar(a)}>
-                    <div style={{ fontWeight: '600', fontSize: '15px', color: '#1e293b' }}>{a.nombre} <span style={{fontSize:'11px', color:'#94a3b8', fontWeight:'normal'}}>(Editar)</span></div>
-                    <div style={{fontSize:'13px', color:'#64748b'}}>{a.cinta} • ${a.monto_mensualidad}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {!a.pagado ? (
-                      <>
-                        <button onClick={() => confirmarPago(a.id, a.monto_mensualidad)} style={{ ...styles.btnPill, background: '#eff6ff', color: '#2563eb' }}>Cobrar</button>
-                        <button onClick={() => enviarWhatsApp(a.telefono, a.nombre, a.monto_mensualidad)} style={{ ...styles.btnPill, background: '#f0fdf4', color: '#16a34a' }}>WhatsApp</button>
-                      </>
-                    ) : <span style={{ color: '#10b981', fontWeight: 'bold', fontSize: '11px', background: '#dcfce7', padding: '6px 12px', borderRadius: '20px' }}>PAGADO</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        <div style={styles.colSide}>
-           <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', position: 'sticky', top: '90px', border: '1px solid #f1f5f9' }}>
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '12px', color: '#0f172a', fontWeight: '800', textTransform: 'uppercase' }}>Actividad Reciente</h3>
-            {historial.map(p => (
-              <div key={p.id} style={{ padding: '12px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <div><div style={{ fontWeight: '500' }}>{p.alumnos?.nombre}</div><div style={{ fontSize: '11px', color: '#94a3b8' }}>{new Date(p.fecha_pago).toLocaleDateString()}</div></div>
-                <div style={{ color: '#10b981', fontWeight: '600' }}>+${p.monto}</div>
-              </div>
-            ))}
-            <div style={{ marginTop: '15px', textAlign: 'center' }}>
-              <button onClick={fetchDatos} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>ACTUALIZAR</button>
-            </div>
-          </div>
-        </div>
+        <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+          <IconLogout />
+        </button>
       </div>
 
+      <div style={styles.layout}>
+        
+        {/* --- VISTA: INICIO (DASHBOARD) --- */}
+        {vistaActual === 'inicio' && (
+          <>
+            {/* Métricas (Solo Admin) */}
+            {rolUsuario === 'admin' && (
+              <>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>POR COBRAR</div></div>
+                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
+                </div>
+                
+                <div style={{ background: 'white', padding: '20px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={datosGrafica}><Bar dataKey="total" fill="#3b82f6" radius={[4,4,4,4]} /><XAxis dataKey="name" hide /></BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
+
+            {/* Lista de Deudores */}
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes de Pago ({listaParaMostrar.length})</h3>
+            
+            {listaParaMostrar.length === 0 ? (
+              <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>
+                <div style={{fontSize:'40px'}}>🎉</div>
+                <p>¡Todo el mundo está al día!</p>
+              </div>
+            ) : (
+              listaParaMostrar.map((a) => (
+                <div key={a.id} style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
+                  {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background:'#ef4444'}}>{getIniciales(a.nombre)}</div>}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '700', color: '#1e293b' }}>{a.nombre}</div>
+                    <div style={{fontSize:'12px', color:'#64748b'}}>Debe: ${a.monto_mensualidad}</div>
+                  </div>
+                  <div style={{display:'flex', gap:'8px'}}>
+                    <button onClick={() => confirmarPago(a.id, a.monto_mensualidad)} style={{background:'#eff6ff', color:'#3b82f6', border:'none', padding:'8px 12px', borderRadius:'8px', fontWeight:'700', fontSize:'12px'}}>COBRAR</button>
+                    <button onClick={() => enviarWhatsApp(a.telefono, a.nombre, a.monto_mensualidad)} style={{background:'#f0fdf4', color:'#16a34a', border:'none', padding:'8px', borderRadius:'8px'}}>💬</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </>
+        )}
+
+        {/* --- VISTA: ALUMNOS (DIRECTORIO) --- */}
+        {vistaActual === 'alumnos' && (
+          <>
+            <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
+            
+            {listaParaMostrar.map((a) => (
+              <div key={a.id} style={styles.card} onClick={() => abrirFormularioEditar(a)}>
+                {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background: a.pagado ? '#10b981' : '#ef4444'}}>{getIniciales(a.nombre)}</div>}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '700', color: '#1e293b' }}>{a.nombre}</div>
+                  <div style={{fontSize:'12px', color:'#64748b'}}>{a.cinta} • {a.pagado ? <span style={{color:'#10b981'}}>Al corriente</span> : <span style={{color:'#ef4444'}}>Debe pago</span>}</div>
+                </div>
+                <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
+              </div>
+            ))}
+
+            {/* Botón Flotante solo en vista Alumnos */}
+            <button onClick={abrirFormularioCrear} style={styles.btnFloat}>+</button>
+          </>
+        )}
+
+      </div>
+
+      {/* --- BOTTOM NAVIGATION BAR --- */}
+      <div style={styles.bottomBar}>
+        <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
+          <IconHome active={vistaActual === 'inicio'} />
+          INICIO
+        </button>
+        <button onClick={() => setVistaActual('alumnos')} style={{...styles.navItem, color: vistaActual === 'alumnos' ? '#3b82f6' : '#94a3b8'}}>
+          <IconUsers active={vistaActual === 'alumnos'} />
+          ALUMNOS
+        </button>
+      </div>
+
+      {/* MODAL FORMULARIO (Mismo de siempre) */}
       {mostrarFormulario && (
         <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:200 }}>
           <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px' }}>
             <h2 style={{marginTop:0, fontSize:'18px'}}>{modoEdicion?'Editar':'Nuevo'}</h2>
             <form onSubmit={guardarAlumno}>
               <div style={{textAlign:'center', marginBottom:'15px'}}>
-                {/* PREVISUALIZACIÓN DE FOTO */}
                 <div style={{width:'80px', height:'80px', borderRadius:'50%', background:'#f1f5f9', margin:'0 auto 10px', display:'flex', justifyContent:'center', alignItems:'center', overflow:'hidden', border:'1px solid #e2e8f0'}}>
-                  {fotoPreview || archivoFoto ? (
-                    <img src={archivoFoto ? URL.createObjectURL(archivoFoto) : fotoPreview} style={{width:'100%', height:'100%', objectFit:'cover'}} />
-                  ) : <span style={{fontSize:'30px'}}>📷</span>}
+                  {fotoPreview || archivoFoto ? <img src={archivoFoto ? URL.createObjectURL(archivoFoto) : fotoPreview} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <span style={{fontSize:'30px'}}>📷</span>}
                 </div>
-                {/* INPUT DE FOTO */}
-                <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={styles.fileInput} />
+                <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={{fontSize:'12px'}} />
               </div>
-
               <input style={styles.search} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} required />
               <input style={styles.search} placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} type="number" />
               <div style={{display:'flex', gap:'10px'}}>
@@ -313,7 +291,7 @@ function Dashboard({ session, rolUsuario }) {
                 <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#f1f5f9', border:'none', borderRadius:'8px', cursor:'pointer'}}>Cancelar</button>
                 <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer'}}>Guardar</button>
               </div>
-              {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={confirmarBaja} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR ALUMNO</button>}
+              {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR</button>}
             </form>
           </div>
         </div>
@@ -326,27 +304,12 @@ function App() {
   const [session, setSession] = useState(null)
   const [rol, setRol] = useState(null)
   const [loading, setLoading] = useState(true)
-
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) cargarPerfil(session.user.id)
-      else setLoading(false)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (session) cargarPerfil(session.user.id)
-      else { setRol(null); setLoading(false) }
-    })
+    supabase.auth.getSession().then(({ data: { session } }) => { setSession(session); if (session) cargarPerfil(session.user.id); else setLoading(false) })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setSession(session); if (session) cargarPerfil(session.user.id); else { setRol(null); setLoading(false) } })
     return () => subscription.unsubscribe()
   }, [])
-
-  async function cargarPerfil(uid) {
-    const { data } = await supabase.from('perfiles').select('rol').eq('id', uid).single()
-    setRol(data?.rol || 'entrenador') 
-    setLoading(false)
-  }
-
+  async function cargarPerfil(uid) { const { data } = await supabase.from('perfiles').select('rol').eq('id', uid).single(); setRol(data?.rol || 'entrenador'); setLoading(false) }
   if (loading) return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>Cargando...</div>
   if (!session) return <LoginScreen />
   return <Dashboard session={session} rolUsuario={rol} />
