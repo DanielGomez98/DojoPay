@@ -72,6 +72,12 @@ function Dashboard({ session, rolUsuario }) {
   
   // Asistencia
   const [seleccionados, setSeleccionados] = useState([])
+  
+  // 1. FUNCIÓN DE CERRAR SESIÓN (Asegurada)
+  async function cerrarSesion() { 
+    const { error } = await supabase.auth.signOut()
+    if (error) toast.error("Error al salir")
+  }
 
   // Estados Formulario
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
