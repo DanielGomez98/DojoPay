@@ -95,3 +95,45 @@ CREATE TABLE perfiles (
   id UUID REFERENCES auth.users NOT NULL PRIMARY KEY,
   rol TEXT DEFAULT 'entrenador' -- 'admin' o 'entrenador'
 );
+
+2. Seguridad (Row Level Security)
+SQL
+
+-- Habilitar RLS
+ALTER TABLE alumnos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pagos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE asistencias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de Acceso (Permitir todo a usuarios logueados)
+CREATE POLICY "Acceso total alumnos" ON alumnos FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Acceso total pagos" ON pagos FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Acceso total asistencias" ON asistencias FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Ver perfiles" ON perfiles FOR SELECT USING (true);
+3. Almacenamiento (Storage)
+Crear un Bucket público llamado avatars.
+
+Configurar política para permitir subida de archivos a usuarios autenticados.
+
+👤 Gestión de Usuarios
+El sistema utiliza un "Login Híbrido".
+
+En Supabase: Crear usuario como usuario@dojo.com.
+
+En la App: El usuario puede iniciar sesión escribiendo solo usuario.
+
+Roles: Para hacer Admin a un usuario, insertar su ID en la tabla perfiles:
+
+SQL
+
+INSERT INTO perfiles (id, rol) VALUES ('UID_DEL_USUARIO', 'admin');
+📦 Despliegue (Deploy)
+Este proyecto está optimizado para Vercel.
+
+Subir código a GitHub.
+
+Importar proyecto en Vercel.
+
+Configurar las Environment Variables en Vercel con las llaves de Supabase.
+
+¡Listo!
