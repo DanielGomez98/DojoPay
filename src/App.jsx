@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
-// --- ICONOS SVG (Directos en código para asegurar que se vean) ---
+// --- ICONOS SVG ---
 const IconHome = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
 )
@@ -56,7 +56,7 @@ function LoginScreen() {
 
 // --- APP PRINCIPAL ---
 function Dashboard({ session, rolUsuario }) {
-  const [vistaActual, setVistaActual] = useState('inicio') // 'inicio' | 'alumnos'
+  const [vistaActual, setVistaActual] = useState('inicio')
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [metricas, setMetricas] = useState({ totalDeuda: 0, totalAlumnos: 0, ingresosMes: 0 })
@@ -117,6 +117,7 @@ function Dashboard({ session, rolUsuario }) {
     if (!archivoFoto) return null
     const ext = archivoFoto.name.split('.').pop()
     const fileName = `${Date.now()}.${ext}`
+    // Asegúrate que tu bucket se llame 'avatars' en minúscula en Supabase
     const { error } = await supabase.storage.from('avatars').upload(fileName, archivoFoto)
     if (error) throw error
     const { data } = supabase.storage.from('avatars').getPublicUrl(fileName)
@@ -154,23 +155,66 @@ function Dashboard({ session, rolUsuario }) {
   async function cerrarSesion() { await supabase.auth.signOut() }
   const getIniciales = (n) => n.split(' ').map(c=>c[0]).join('').substring(0,2).toUpperCase()
   
-  // --- FILTROS DE VISTA ---
-  // Si estamos en 'inicio', solo mostramos los que NO han pagado
-  // Si estamos en 'alumnos', mostramos TODOS filtrados por búsqueda
   const listaParaMostrar = vistaActual === 'inicio' 
-    ? alumnos.filter(a => !a.pagado) // Solo deudores
-    : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase())) // Todos con filtro
+    ? alumnos.filter(a => !a.pagado) 
+    : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
+  // --- ESTILOS RESPONSIVOS Y CORREGIDOS ---
   const styles = {
-    layout: { maxWidth: '600px', margin: '0 auto', padding: '20px 20px 100px 20px', background: '#f8fafc', minHeight: '100vh' },
-    card: { background: 'white', borderRadius: '16px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9' },
+    // 1. ANCHO AUMENTADO Y BOX-SIZING
+    layout: { 
+      maxWidth: '800px', // Más ancho para PC
+      width: '100%', 
+      margin: '0 auto', 
+      padding: '20px', 
+      paddingBottom: '100px',
+      boxSizing: 'border-box' // Evita que se desborde
+    },
+    
+    // 2. GRID PARA LAS TARJETAS DE DINERO (Tamaños iguales)
+    statContainer: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', // Se adaptan solas
+      gap: '15px',
+      marginBottom: '20px'
+    },
+    
+    // Tarjetas Generales
+    card: { 
+      background: 'white', 
+      borderRadius: '16px', 
+      padding: '16px', 
+      marginBottom: '12px', 
+      boxShadow: '0 2px 4px rgba(0,0,0,0.03)', 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '15px', 
+      border: '1px solid #f1f5f9',
+      boxSizing: 'border-box' 
+    },
+    
     avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
-    search: { width: '100%', padding: '14px', marginBottom:'20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing:'border-box' },
+    
+    search: { 
+      width: '100%', 
+      padding: '16px', 
+      marginBottom: '20px', 
+      borderRadius: '16px', 
+      border: '1px solid #e2e8f0', 
+      fontSize: '15px', 
+      outline: 'none', 
+      boxShadow: '0 2px 4px rgba(0,0,0,0.02)', 
+      boxSizing: 'border-box' // Importante para que no se salga
+    },
+    
     statBox: { background: 'white', padding: '15px', borderRadius: '16px', flex: 1, textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    
     btnFloat: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
-    // Bottom Bar
+    
     bottomBar: { position:'fixed', bottom:0, left:0, right:0, background:'white', borderTop:'1px solid #e2e8f0', padding:'10px 0', display:'flex', justifyContent:'space-around', alignItems:'center', zIndex:100, paddingBottom:'max(10px, env(safe-area-inset-bottom))' },
-    navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' }
+    navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
+    
+    fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
   }
 
   return (
@@ -189,13 +233,13 @@ function Dashboard({ session, rolUsuario }) {
 
       <div style={styles.layout}>
         
-        {/* --- VISTA: INICIO (DASHBOARD) --- */}
+        {/* --- VISTA: INICIO --- */}
         {vistaActual === 'inicio' && (
           <>
-            {/* Métricas (Solo Admin) */}
             {rolUsuario === 'admin' && (
               <>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                {/* 3. USAMOS EL CONTENEDOR GRID AQUÍ */}
+                <div style={styles.statContainer}>
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>POR COBRAR</div></div>
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
                 </div>
@@ -208,7 +252,6 @@ function Dashboard({ session, rolUsuario }) {
               </>
             )}
 
-            {/* Lista de Deudores */}
             <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes de Pago ({listaParaMostrar.length})</h3>
             
             {listaParaMostrar.length === 0 ? (
@@ -234,7 +277,7 @@ function Dashboard({ session, rolUsuario }) {
           </>
         )}
 
-        {/* --- VISTA: ALUMNOS (DIRECTORIO) --- */}
+        {/* --- VISTA: ALUMNOS --- */}
         {vistaActual === 'alumnos' && (
           <>
             <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
@@ -249,27 +292,21 @@ function Dashboard({ session, rolUsuario }) {
                 <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
               </div>
             ))}
-
-            {/* Botón Flotante solo en vista Alumnos */}
             <button onClick={abrirFormularioCrear} style={styles.btnFloat}>+</button>
           </>
         )}
 
       </div>
 
-      {/* --- BOTTOM NAVIGATION BAR --- */}
       <div style={styles.bottomBar}>
         <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
-          <IconHome active={vistaActual === 'inicio'} />
-          INICIO
+          <IconHome active={vistaActual === 'inicio'} /> INICIO
         </button>
         <button onClick={() => setVistaActual('alumnos')} style={{...styles.navItem, color: vistaActual === 'alumnos' ? '#3b82f6' : '#94a3b8'}}>
-          <IconUsers active={vistaActual === 'alumnos'} />
-          ALUMNOS
+          <IconUsers active={vistaActual === 'alumnos'} /> ALUMNOS
         </button>
       </div>
 
-      {/* MODAL FORMULARIO (Mismo de siempre) */}
       {mostrarFormulario && (
         <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:200 }}>
           <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px' }}>
@@ -288,8 +325,9 @@ function Dashboard({ session, rolUsuario }) {
                 <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
               </div>
               <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#f1f5f9', border:'none', borderRadius:'8px', cursor:'pointer'}}>Cancelar</button>
-                <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer'}}>Guardar</button>
+                {/* 4. BOTÓN CANCELAR AHORA ES ROJO CLARO */}
+                <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
+                <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
               </div>
               {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR</button>}
             </form>
