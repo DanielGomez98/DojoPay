@@ -32,7 +32,7 @@ function LoginScreen() {
   }
 
   const styles = {
-    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0 }, // margin 0 vital
+    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0 },
     card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '90%', maxWidth: '350px', textAlign: 'center', boxSizing: 'border-box' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing:'border-box', fontSize: '16px' },
     btn: { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop:'10px' }
@@ -153,20 +153,20 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- VARIABLES DE DISEÑO ---
-  const APP_WIDTH = '800px'; // Controla el ancho máximo de toda la app (Barras y contenido)
+  // --- VARIABLES DE DISEÑO (AJUSTADAS) ---
+  const APP_WIDTH = '1200px'; // AUMENTADO A 1200px para que se vea grande en PC
 
   const styles = {
-    // 1. EL CONTENEDOR PRINCIPAL QUE CENTRA TODO
+    // 1. Contenedor Maestro
     appContainer: {
       background: '#f8fafc',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center', // Centra la columna de la app
+      alignItems: 'center', 
     },
 
-    // 2. EL TOP BAR (Ahora limitado y centrado)
+    // 2. Top Bar
     topBar: {
       background: 'white',
       padding: '15px 20px',
@@ -178,28 +178,27 @@ function Dashboard({ session, rolUsuario }) {
       justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
-      maxWidth: APP_WIDTH, // ¡Aquí está el truco!
+      maxWidth: APP_WIDTH, 
       boxSizing: 'border-box'
     },
 
-    // 3. EL CONTENIDO SCROLEABLE
+    // 3. Contenido (Con menos padding para aprovechar espacio)
     content: {
       width: '100%',
-      maxWidth: APP_WIDTH, // ¡Aquí también!
-      padding: '20px',
-      paddingBottom: '100px', // Espacio para la barra inferior
+      maxWidth: APP_WIDTH,
+      padding: '16px', // Reducido ligeramente para ganar espacio en móvil
+      paddingBottom: '100px', 
       boxSizing: 'border-box'
     },
 
-    // 4. LA BARRA INFERIOR (También limitada y centrada)
+    // 4. Barra Inferior
     bottomBar: {
       position: 'fixed',
       bottom: 0,
-      // Truco de centrado absoluto para fixed elements:
       left: '50%',
       transform: 'translateX(-50%)', 
       width: '100%',
-      maxWidth: APP_WIDTH, // ¡Y aquí!
+      maxWidth: APP_WIDTH, 
       background: 'white',
       borderTop: '1px solid #e2e8f0',
       padding: '12px 0',
@@ -212,23 +211,24 @@ function Dashboard({ session, rolUsuario }) {
     },
 
     // ELEMENTOS INTERNOS
-    statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px', marginBottom: '20px', width: '100%' },
+    statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px', width: '100%' },
     statBox: { background: 'white', padding: '15px 10px', borderRadius: '16px', textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    
     card: { background: 'white', borderRadius: '16px', padding: '15px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9', width: '100%', boxSizing: 'border-box' },
     avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
     search: { width: '100%', padding: '16px', marginBottom: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing: 'border-box' },
-    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '250px', width: '100%', boxSizing: 'border-box' },
-    // El botón flotante debe estar dentro del layout visualmente
+    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '300px', width: '100%', boxSizing: 'border-box' },
+    
+    // Botón flotante inteligente
     btnFloat: { position:'fixed', bottom:'90px', right:'calc(50% - ' + (parseInt(APP_WIDTH)/2 - 20) + 'px)', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
-    // Fallback para cuando la pantalla es menor al max-width (celular)
     btnFloatMobile: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
     
     navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
     fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
   }
 
-  // Lógica para posicionar el botón flotante correctamente
-  const isDesktop = window.innerWidth > 800;
+  // Detectar si es pantalla ancha para el botón flotante
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 1200;
 
   return (
     <div style={styles.appContainer}>
@@ -307,7 +307,7 @@ function Dashboard({ session, rolUsuario }) {
               </div>
             ))}
             
-            {/* Botón Flotante con posición inteligente */}
+            {/* Botón Flotante */}
             <button onClick={abrirFormularioCrear} style={isDesktop ? styles.btnFloat : styles.btnFloatMobile}>+</button>
           </>
         )}
