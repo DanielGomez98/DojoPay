@@ -32,7 +32,8 @@ function LoginScreen() {
   }
 
   const styles = {
-    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0 },
+    // Forzamos al login a ocupar toda la pantalla
+    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0, position: 'fixed', top: 0, left: 0 },
     card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '90%', maxWidth: '350px', textAlign: 'center', boxSizing: 'border-box' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing:'border-box', fontSize: '16px' },
     btn: { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop:'10px' }
@@ -153,20 +154,34 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- VARIABLES DE DISEÑO (AJUSTADAS) ---
-  const APP_WIDTH = '1200px'; // AUMENTADO A 1200px para que se vea grande en PC
+  // --- VARIABLES DE DISEÑO ---
+  const MAX_WIDTH = '1000px';
 
   const styles = {
-    // 1. Contenedor Maestro
-    appContainer: {
-      background: '#f8fafc',
+    // 1. FONDO GLOBAL: Asegura que cubra el 100% de la pantalla (quita lo negro)
+    globalWrapper: {
       minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center', 
+      width: '100%',
+      backgroundColor: '#f8fafc',
+      margin: 0,
+      padding: 0,
+      position: 'absolute', // Forzamos posición
+      top: 0,
+      left: 0,
+      overflowX: 'hidden'
     },
 
-    // 2. Top Bar
+    // 2. CONTENEDOR CENTRADO: Aquí es donde vive tu app
+    appCentered: {
+      width: '100%',
+      maxWidth: MAX_WIDTH,
+      margin: '0 auto', // Esto centra la columna en PC
+      background: '#f8fafc',
+      minHeight: '100vh',
+      position: 'relative' // Referencia para fixed
+    },
+
+    // 3. TOP BAR
     topBar: {
       background: 'white',
       padding: '15px 20px',
@@ -178,177 +193,197 @@ function Dashboard({ session, rolUsuario }) {
       justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
-      maxWidth: APP_WIDTH, 
       boxSizing: 'border-box'
     },
 
-    // 3. Contenido (Con menos padding para aprovechar espacio)
+    // 4. CONTENT
     content: {
+      padding: '20px',
+      paddingBottom: '100px',
       width: '100%',
-      maxWidth: APP_WIDTH,
-      padding: '16px', // Reducido ligeramente para ganar espacio en móvil
-      paddingBottom: '100px', 
       boxSizing: 'border-box'
     },
 
-    // 4. Barra Inferior
-    bottomBar: {
+    // 5. BOTTOM BAR (Ajustada para no desbordar en PC)
+    bottomBarContainer: {
       position: 'fixed',
       bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)', 
+      left: 0,
       width: '100%',
-      maxWidth: APP_WIDTH, 
+      zIndex: 100,
+      display: 'flex',
+      justifyContent: 'center', // Centra la barra interna
+      pointerEvents: 'none' // Deja pasar clicks a los lados en PC
+    },
+    bottomBarInner: {
+      width: '100%',
+      maxWidth: MAX_WIDTH,
       background: 'white',
       borderTop: '1px solid #e2e8f0',
       padding: '12px 0',
+      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
       display: 'flex',
       justifyContent: 'space-around',
       alignItems: 'center',
-      zIndex: 100,
-      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-      boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)'
+      boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)',
+      pointerEvents: 'auto' // Reactiva clicks
     },
 
-    // ELEMENTOS INTERNOS
-    statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '20px', width: '100%' },
-    statBox: { background: 'white', padding: '15px 10px', borderRadius: '16px', textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
-    
-    card: { background: 'white', borderRadius: '16px', padding: '15px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9', width: '100%', boxSizing: 'border-box' },
+    // ELEMENTOS
+    statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' },
+    statBox: { background: 'white', padding: '15px', borderRadius: '16px', textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    card: { background: 'white', borderRadius: '16px', padding: '15px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9' },
     avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
     search: { width: '100%', padding: '16px', marginBottom: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing: 'border-box' },
-    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '300px', width: '100%', boxSizing: 'border-box' },
+    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '250px' },
     
-    // Botón flotante inteligente
-    btnFloat: { position:'fixed', bottom:'90px', right:'calc(50% - ' + (parseInt(APP_WIDTH)/2 - 20) + 'px)', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
-    btnFloatMobile: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
+    // Botón flotante corregido
+    btnFloatWrapper: {
+      position: 'fixed',
+      bottom: '90px',
+      left: 0,
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'center',
+      pointerEvents: 'none',
+      zIndex: 50
+    },
+    btnFloatInner: {
+      width: '100%',
+      maxWidth: MAX_WIDTH,
+      display: 'flex',
+      justifyContent: 'flex-end',
+      paddingRight: '20px',
+      boxSizing: 'border-box'
+    },
+    btnFloat: { 
+      background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents: 'auto' 
+    },
     
     navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
     fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
   }
 
-  // Detectar si es pantalla ancha para el botón flotante
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 1200;
-
   return (
-    <div style={styles.appContainer}>
-      <Toaster richColors position="top-center" />
-      
-      {/* TOP BAR */}
-      <div style={styles.topBar}>
-        <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
-          {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
-        </div>
-        <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
-          <IconLogout />
-        </button>
-      </div>
-
-      {/* CONTENIDO */}
-      <div style={styles.content}>
+    <div style={styles.globalWrapper}>
+      <div style={styles.appCentered}>
+        <Toaster richColors position="top-center" />
         
-        {/* --- VISTA: INICIO --- */}
-        {vistaActual === 'inicio' && (
-          <>
-            {rolUsuario === 'admin' && (
-              <>
-                <div style={styles.statContainer}>
-                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
-                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
-                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ALUMNOS</div></div>
-                </div>
-                
-                <div style={styles.chartContainer}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={datosGrafica}><Bar dataKey="total" fill="#3b82f6" radius={[4,4,4,4]} /><XAxis dataKey="name" hide /></BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </>
-            )}
+        {/* TOP BAR */}
+        <div style={styles.topBar}>
+          <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
+            {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
+          </div>
+          <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+            <IconLogout />
+          </button>
+        </div>
 
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
-            
-            {listaParaMostrar.length === 0 ? (
-              <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>
-                <div style={{fontSize:'40px'}}>🎉</div>
-                <p>¡Todo al día!</p>
-              </div>
-            ) : (
-              listaParaMostrar.map((a) => (
-                <div key={a.id} style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
-                  {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background:'#ef4444'}}>{getIniciales(a.nombre)}</div>}
+        {/* CONTENIDO */}
+        <div style={styles.content}>
+          {vistaActual === 'inicio' && (
+            <>
+              {rolUsuario === 'admin' && (
+                <>
+                  <div style={styles.statContainer}>
+                    <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
+                    <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
+                    <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ALUMNOS</div></div>
+                  </div>
+                  
+                  <div style={styles.chartContainer}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={datosGrafica}><Bar dataKey="total" fill="#3b82f6" radius={[4,4,4,4]} /><XAxis dataKey="name" hide /></BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
+
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
+              
+              {listaParaMostrar.length === 0 ? (
+                <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo el mundo está al día!</p></div>
+              ) : (
+                listaParaMostrar.map((a) => (
+                  <div key={a.id} style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
+                    {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background:'#ef4444'}}>{getIniciales(a.nombre)}</div>}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '700', color: '#1e293b' }}>{a.nombre}</div>
+                      <div style={{fontSize:'12px', color:'#64748b'}}>Debe: ${a.monto_mensualidad}</div>
+                    </div>
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <button onClick={() => confirmarPago(a.id, a.monto_mensualidad)} style={{background:'#eff6ff', color:'#3b82f6', border:'none', padding:'8px 12px', borderRadius:'8px', fontWeight:'700', fontSize:'12px'}}>COBRAR</button>
+                      <button onClick={() => enviarWhatsApp(a.telefono, a.nombre, a.monto_mensualidad)} style={{background:'#f0fdf4', color:'#16a34a', border:'none', padding:'8px', borderRadius:'8px'}}>💬</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
+          )}
+
+          {vistaActual === 'alumnos' && (
+            <>
+              <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
+              {listaParaMostrar.map((a) => (
+                <div key={a.id} style={styles.card} onClick={() => abrirFormularioEditar(a)}>
+                  {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background: a.pagado ? '#10b981' : '#ef4444'}}>{getIniciales(a.nombre)}</div>}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: '700', color: '#1e293b' }}>{a.nombre}</div>
-                    <div style={{fontSize:'12px', color:'#64748b'}}>Debe: ${a.monto_mensualidad}</div>
+                    <div style={{fontSize:'12px', color:'#64748b'}}>{a.cinta} • {a.pagado ? <span style={{color:'#10b981'}}>Al corriente</span> : <span style={{color:'#ef4444'}}>Debe pago</span>}</div>
                   </div>
-                  <div style={{display:'flex', gap:'8px'}}>
-                    <button onClick={() => confirmarPago(a.id, a.monto_mensualidad)} style={{background:'#eff6ff', color:'#3b82f6', border:'none', padding:'8px 12px', borderRadius:'8px', fontWeight:'700', fontSize:'12px'}}>COBRAR</button>
-                    <button onClick={() => enviarWhatsApp(a.telefono, a.nombre, a.monto_mensualidad)} style={{background:'#f0fdf4', color:'#16a34a', border:'none', padding:'8px', borderRadius:'8px'}}>💬</button>
-                  </div>
+                  <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
                 </div>
-              ))
-            )}
-          </>
-        )}
-
-        {/* --- VISTA: ALUMNOS --- */}
-        {vistaActual === 'alumnos' && (
-          <>
-            <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
-            
-            {listaParaMostrar.map((a) => (
-              <div key={a.id} style={styles.card} onClick={() => abrirFormularioEditar(a)}>
-                {a.foto_url ? <img src={a.foto_url} style={{...styles.avatar, background:'transparent'}} /> : <div style={{...styles.avatar, background: a.pagado ? '#10b981' : '#ef4444'}}>{getIniciales(a.nombre)}</div>}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700', color: '#1e293b' }}>{a.nombre}</div>
-                  <div style={{fontSize:'12px', color:'#64748b'}}>{a.cinta} • {a.pagado ? <span style={{color:'#10b981'}}>Al corriente</span> : <span style={{color:'#ef4444'}}>Debe pago</span>}</div>
+              ))}
+              
+              {/* BOTÓN FLOTANTE DENTRO DEL LAYOUT SEGURO */}
+              <div style={styles.btnFloatWrapper}>
+                <div style={styles.btnFloatInner}>
+                  <button onClick={abrirFormularioCrear} style={styles.btnFloat}>+</button>
                 </div>
-                <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
               </div>
-            ))}
-            
-            {/* Botón Flotante */}
-            <button onClick={abrirFormularioCrear} style={isDesktop ? styles.btnFloat : styles.btnFloatMobile}>+</button>
-          </>
-        )}
+            </>
+          )}
+        </div>
 
-      </div>
-
-      <div style={styles.bottomBar}>
-        <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
-          <IconHome active={vistaActual === 'inicio'} /> INICIO
-        </button>
-        <button onClick={() => setVistaActual('alumnos')} style={{...styles.navItem, color: vistaActual === 'alumnos' ? '#3b82f6' : '#94a3b8'}}>
-          <IconUsers active={vistaActual === 'alumnos'} /> ALUMNOS
-        </button>
-      </div>
-
-      {mostrarFormulario && (
-        <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:200 }}>
-          <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px' }}>
-            <h2 style={{marginTop:0, fontSize:'18px'}}>{modoEdicion?'Editar':'Nuevo'}</h2>
-            <form onSubmit={guardarAlumno}>
-              <div style={{textAlign:'center', marginBottom:'15px'}}>
-                <div style={{width:'80px', height:'80px', borderRadius:'50%', background:'#f1f5f9', margin:'0 auto 10px', display:'flex', justifyContent:'center', alignItems:'center', overflow:'hidden', border:'1px solid #e2e8f0'}}>
-                  {fotoPreview || archivoFoto ? <img src={archivoFoto ? URL.createObjectURL(archivoFoto) : fotoPreview} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <span style={{fontSize:'30px'}}>📷</span>}
-                </div>
-                <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={{fontSize:'12px'}} />
-              </div>
-              <input style={styles.search} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} required />
-              <input style={styles.search} placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} type="number" />
-              <div style={{display:'flex', gap:'10px'}}>
-                <select style={styles.search} value={cinta} onChange={e=>setCinta(e.target.value)}>{['Blanca','Amarilla','Verde','Azul','Roja','Negra'].map(c=><option key={c}>{c}</option>)}</select>
-                <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
-              </div>
-              <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
-                <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
-              </div>
-              {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR</button>}
-            </form>
+        {/* BOTTOM BAR DENTRO DEL LAYOUT SEGURO */}
+        <div style={styles.bottomBarContainer}>
+          <div style={styles.bottomBarInner}>
+            <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
+              <IconHome active={vistaActual === 'inicio'} /> INICIO
+            </button>
+            <button onClick={() => setVistaActual('alumnos')} style={{...styles.navItem, color: vistaActual === 'alumnos' ? '#3b82f6' : '#94a3b8'}}>
+              <IconUsers active={vistaActual === 'alumnos'} /> ALUMNOS
+            </button>
           </div>
         </div>
-      )}
+
+        {mostrarFormulario && (
+          <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:200 }}>
+            <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px' }}>
+              <h2 style={{marginTop:0, fontSize:'18px'}}>{modoEdicion?'Editar':'Nuevo'}</h2>
+              <form onSubmit={guardarAlumno}>
+                <div style={{textAlign:'center', marginBottom:'15px'}}>
+                  <div style={{width:'80px', height:'80px', borderRadius:'50%', background:'#f1f5f9', margin:'0 auto 10px', display:'flex', justifyContent:'center', alignItems:'center', overflow:'hidden', border:'1px solid #e2e8f0'}}>
+                    {fotoPreview || archivoFoto ? <img src={archivoFoto ? URL.createObjectURL(archivoFoto) : fotoPreview} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <span style={{fontSize:'30px'}}>📷</span>}
+                  </div>
+                  <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={{fontSize:'12px'}} />
+                </div>
+                <input style={styles.search} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} required />
+                <input style={styles.search} placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} type="number" />
+                <div style={{display:'flex', gap:'10px'}}>
+                  <select style={styles.search} value={cinta} onChange={e=>setCinta(e.target.value)}>{['Blanca','Amarilla','Verde','Azul','Roja','Negra'].map(c=><option key={c}>{c}</option>)}</select>
+                  <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
+                </div>
+                <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
+                  <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
+                  <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
+                </div>
+                {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR</button>}
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -363,7 +398,7 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
   async function cargarPerfil(uid) { const { data } = await supabase.from('perfiles').select('rol').eq('id', uid).single(); setRol(data?.rol || 'entrenador'); setLoading(false) }
-  if (loading) return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>Cargando...</div>
+  if (loading) return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh', width:'100vw'}}>Cargando...</div>
   if (!session) return <LoginScreen />
   return <Dashboard session={session} rolUsuario={rol} />
 }
