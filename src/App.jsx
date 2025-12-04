@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
-// --- ICONOS SVG ---
+// --- ICONOS ---
 const IconHome = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
 )
@@ -32,7 +32,7 @@ function LoginScreen() {
   }
 
   const styles = {
-    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif' },
+    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0 }, // margin 0 vital
     card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '90%', maxWidth: '350px', textAlign: 'center', boxSizing: 'border-box' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing:'border-box', fontSize: '16px' },
     btn: { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop:'10px' }
@@ -54,7 +54,7 @@ function LoginScreen() {
   )
 }
 
-// --- APP PRINCIPAL ---
+// --- DASHBOARD ---
 function Dashboard({ session, rolUsuario }) {
   const [vistaActual, setVistaActual] = useState('inicio')
   const [alumnos, setAlumnos] = useState([])
@@ -63,7 +63,6 @@ function Dashboard({ session, rolUsuario }) {
   const [datosGrafica, setDatosGrafica] = useState([])
   const [busqueda, setBusqueda] = useState('')
   
-  // Estados Formulario
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [idEdicion, setIdEdicion] = useState(null)
@@ -75,13 +74,11 @@ function Dashboard({ session, rolUsuario }) {
     setLoading(true)
     try {
       const { data: alumnosData } = await supabase.from('alumnos').select('*').eq('activo', true).order('nombre')
-      
       const hoy = new Date()
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString()
       const seisMesesAtras = new Date()
       seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 5)
       seisMesesAtras.setDate(1)
-
       const { data: pagosRaw } = await supabase.from('pagos').select('monto, alumno_id, fecha_pago').gte('fecha_pago', seisMesesAtras.toISOString())
 
       let deuda = 0, ingresos = 0
@@ -116,7 +113,6 @@ function Dashboard({ session, rolUsuario }) {
     if (!archivoFoto) return null
     const ext = archivoFoto.name.split('.').pop()
     const fileName = `${Date.now()}.${ext}`
-    // IMPORTANTE: Asegúrate de que tu bucket en Supabase se llame 'avatars' (en minúscula)
     const { error } = await supabase.storage.from('avatars').upload(fileName, archivoFoto)
     if (error) throw error
     const { data } = supabase.storage.from('avatars').getPublicUrl(fileName)
@@ -157,99 +153,89 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- ESTILOS CORREGIDOS (Layout Seguro) ---
+  // --- VARIABLES DE DISEÑO ---
+  const APP_WIDTH = '800px'; // Controla el ancho máximo de toda la app (Barras y contenido)
+
   const styles = {
-    // 1. Contenedor Maestro: Evita desbordamiento y centra contenido
-    mainWrapper: {
+    // 1. EL CONTENEDOR PRINCIPAL QUE CENTRA TODO
+    appContainer: {
       background: '#f8fafc',
       minHeight: '100vh',
-      width: '100%',
-      overflowX: 'hidden' // VITAL: Corta cualquier cosa que se salga horizontalmente
-    },
-    
-    // 2. Layout del Contenido: Ancho controlado (95%) y máximo (1000px)
-    layout: { 
-      width: '95%', 
-      maxWidth: '1000px', 
-      margin: '0 auto', 
-      paddingTop: '20px', 
-      paddingBottom: '100px', // Espacio para la barra de abajo
-      boxSizing: 'border-box'
-    },
-    
-    // 3. Grid para las tarjetas de dinero (Se adaptan sin romperse)
-    statContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', // Mínimo 110px, si hay espacio se estiran
-      gap: '12px',
-      marginBottom: '20px',
-      width: '100%'
-    },
-    
-    statBox: { 
-      background: 'white', 
-      padding: '15px 10px', 
-      borderRadius: '16px', 
-      textAlign: 'center', 
-      border: '1px solid #f1f5f9', 
-      boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center', // Centra la columna de la app
     },
 
-    // Tarjetas de Alumnos
-    card: { 
-      background: 'white', 
-      borderRadius: '16px', 
-      padding: '15px', 
-      marginBottom: '12px', 
-      boxShadow: '0 2px 4px rgba(0,0,0,0.03)', 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '15px', 
-      border: '1px solid #f1f5f9',
-      width: '100%', // Asegura que llene el contenedor padre
-      boxSizing: 'border-box' // Importante para que el padding no sume ancho
-    },
-    
-    avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
-    
-    search: { 
-      width: '100%', 
-      padding: '16px', 
-      marginBottom: '20px', 
-      borderRadius: '16px', 
-      border: '1px solid #e2e8f0', 
-      fontSize: '15px', 
-      outline: 'none', 
-      boxShadow: '0 2px 4px rgba(0,0,0,0.02)', 
-      boxSizing: 'border-box'
-    },
-    
-    // Contenedor de la gráfica
-    chartContainer: {
+    // 2. EL TOP BAR (Ahora limitado y centrado)
+    topBar: {
       background: 'white',
-      padding: '15px',
-      borderRadius: '16px',
-      marginBottom: '25px',
-      border: '1px solid #f1f5f9',
-      height: '250px',
+      padding: '15px 20px',
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
+      borderBottom: '1px solid #f1f5f9',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       width: '100%',
+      maxWidth: APP_WIDTH, // ¡Aquí está el truco!
       boxSizing: 'border-box'
     },
+
+    // 3. EL CONTENIDO SCROLEABLE
+    content: {
+      width: '100%',
+      maxWidth: APP_WIDTH, // ¡Aquí también!
+      padding: '20px',
+      paddingBottom: '100px', // Espacio para la barra inferior
+      boxSizing: 'border-box'
+    },
+
+    // 4. LA BARRA INFERIOR (También limitada y centrada)
+    bottomBar: {
+      position: 'fixed',
+      bottom: 0,
+      // Truco de centrado absoluto para fixed elements:
+      left: '50%',
+      transform: 'translateX(-50%)', 
+      width: '100%',
+      maxWidth: APP_WIDTH, // ¡Y aquí!
+      background: 'white',
+      borderTop: '1px solid #e2e8f0',
+      padding: '12px 0',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      zIndex: 100,
+      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+      boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)'
+    },
+
+    // ELEMENTOS INTERNOS
+    statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px', marginBottom: '20px', width: '100%' },
+    statBox: { background: 'white', padding: '15px 10px', borderRadius: '16px', textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    card: { background: 'white', borderRadius: '16px', padding: '15px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9', width: '100%', boxSizing: 'border-box' },
+    avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
+    search: { width: '100%', padding: '16px', marginBottom: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing: 'border-box' },
+    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '250px', width: '100%', boxSizing: 'border-box' },
+    // El botón flotante debe estar dentro del layout visualmente
+    btnFloat: { position:'fixed', bottom:'90px', right:'calc(50% - ' + (parseInt(APP_WIDTH)/2 - 20) + 'px)', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
+    // Fallback para cuando la pantalla es menor al max-width (celular)
+    btnFloatMobile: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
     
-    btnFloat: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
-    
-    bottomBar: { position:'fixed', bottom:0, left:0, right:0, background:'white', borderTop:'1px solid #e2e8f0', padding:'10px 0', display:'flex', justifyContent:'space-around', alignItems:'center', zIndex:100, paddingBottom:'max(10px, env(safe-area-inset-bottom))' },
     navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
-    
     fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
   }
 
+  // Lógica para posicionar el botón flotante correctamente
+  const isDesktop = window.innerWidth > 800;
+
   return (
-    <div style={styles.mainWrapper}>
+    <div style={styles.appContainer}>
       <Toaster richColors position="top-center" />
       
       {/* TOP BAR */}
-      <div style={{ background: 'white', padding: '15px 5%', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={styles.topBar}>
         <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
           {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
         </div>
@@ -258,7 +244,8 @@ function Dashboard({ session, rolUsuario }) {
         </button>
       </div>
 
-      <div style={styles.layout}>
+      {/* CONTENIDO */}
+      <div style={styles.content}>
         
         {/* --- VISTA: INICIO --- */}
         {vistaActual === 'inicio' && (
@@ -268,7 +255,6 @@ function Dashboard({ session, rolUsuario }) {
                 <div style={styles.statContainer}>
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
-                  {/* Tarjeta Extra para que el Grid se vea lleno en 3 columnas en PC */}
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ALUMNOS</div></div>
                 </div>
                 
@@ -280,12 +266,12 @@ function Dashboard({ session, rolUsuario }) {
               </>
             )}
 
-            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes de Pago ({listaParaMostrar.length})</h3>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
             
             {listaParaMostrar.length === 0 ? (
               <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}>
                 <div style={{fontSize:'40px'}}>🎉</div>
-                <p>¡Todo el mundo está al día!</p>
+                <p>¡Todo al día!</p>
               </div>
             ) : (
               listaParaMostrar.map((a) => (
@@ -320,7 +306,9 @@ function Dashboard({ session, rolUsuario }) {
                 <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
               </div>
             ))}
-            <button onClick={abrirFormularioCrear} style={styles.btnFloat}>+</button>
+            
+            {/* Botón Flotante con posición inteligente */}
+            <button onClick={abrirFormularioCrear} style={isDesktop ? styles.btnFloat : styles.btnFloatMobile}>+</button>
           </>
         )}
 
@@ -353,7 +341,6 @@ function Dashboard({ session, rolUsuario }) {
                 <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
               </div>
               <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                {/* BOTÓN CANCELAR AHORA ES ROJO (CAMBIO SOLICITADO) */}
                 <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
                 <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
               </div>
