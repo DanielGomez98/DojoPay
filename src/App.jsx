@@ -72,21 +72,27 @@ function Dashboard({ session, rolUsuario }) {
   const [datosGrafica, setDatosGrafica] = useState([])
   const [historial, setHistorial] = useState([])
   const [busqueda, setBusqueda] = useState('')
-  const [busquedaAsistencia, setBusquedaAsistencia] = useState('') // Búsqueda específica para asistencia
+  const [busquedaAsistencia, setBusquedaAsistencia] = useState('')
   
-  // FILTRO DE FECHA PARA REPORTES
   const [filtroMes, setFiltroMes] = useState('') // Formato "YYYY-MM"
-
-  // Asistencia
   const [seleccionados, setSeleccionados] = useState([])
 
   // Estados Formulario
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
   const [idEdicion, setIdEdicion] = useState(null)
-  const [nombre, setNombre] = useState(''); const [telefono, setTelefono] = useState(''); const [cinta, setCinta] = useState('Blanca'); const [monto, setMonto] = useState(600); const [archivoFoto, setArchivoFoto] = useState(null); const [fotoPreview, setFotoPreview] = useState(null)
+  
+  // CAMPOS NUEVOS
+  const [nombre, setNombre] = useState('')
+  const [telefono, setTelefono] = useState('')
+  const [cinta, setCinta] = useState('Blanca')
+  const [monto, setMonto] = useState(600)
+  const [edad, setEdad] = useState('')
+  const [tutor, setTutor] = useState('')
+  const [emergencia, setEmergencia] = useState('')
+  const [archivoFoto, setArchivoFoto] = useState(null)
+  const [fotoPreview, setFotoPreview] = useState(null)
 
-  // Disparar fetchDatos cuando cambia el filtro de mes
   useEffect(() => { fetchDatos() }, [filtroMes])
 
   async function fetchDatos() {
@@ -94,38 +100,29 @@ function Dashboard({ session, rolUsuario }) {
     try {
       const { data: alumnosData } = await supabase.from('alumnos').select('*').eq('activo', true).order('nombre')
       
-      // LÓGICA DE REPORTES DINÁMICOS
-      let fechaInicio, fechaFin;
-      let modoDiario = false; // ¿Mostramos días o meses en la gráfica?
-
+      let fechaInicio, fechaFin, modoDiario = false;
       if (filtroMes) {
-        // Si hay filtro (Ej: "2025-01"), mostramos ese mes específico
         const [year, month] = filtroMes.split('-')
         fechaInicio = new Date(year, month - 1, 1).toISOString()
-        fechaFin = new Date(year, month, 0, 23, 59, 59).toISOString() // Último día del mes
+        fechaFin = new Date(year, month, 0, 23, 59, 59).toISOString()
         modoDiario = true;
       } else {
-        // Si no hay filtro, mostramos últimos 6 meses
         const hoy = new Date()
         fechaFin = hoy.toISOString()
         const seisMesesAtras = new Date()
         seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 5)
         seisMesesAtras.setDate(1)
         fechaInicio = seisMesesAtras.toISOString()
-        modoDiario = false;
       }
 
-      // Traer pagos en el rango seleccionado
       const { data: pagosRaw } = await supabase.from('pagos')
         .select('id, monto, alumno_id, fecha_pago, registrado_por')
         .gte('fecha_pago', fechaInicio)
         .lte('fecha_pago', fechaFin)
       
-      // Métricas KPI (Siempre basadas en el periodo actual/seleccionado)
       let deuda = 0, ingresosPeriodo = 0
       pagosRaw.forEach(p => ingresosPeriodo += p.monto)
 
-      // Calcular deuda actual (basada en el mes en curso real para alertas)
       const primerDiaMesActual = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
       const { data: pagosEsteMesReal } = await supabase.from('pagos').select('alumno_id, monto').gte('fecha_pago', primerDiaMesActual)
       
@@ -135,14 +132,12 @@ function Dashboard({ session, rolUsuario }) {
         return { ...alumno, pagado: yaPago }
       })
 
-      // Asistencia de hoy
       const fechaHoySQL = new Date().toISOString().split('T')[0]
       const { count: conteoAsistencia } = await supabase.from('asistencias').select('*', { count: 'exact', head: true }).eq('fecha', fechaHoySQL)
 
       setAlumnos(alumnosProcesados)
       setMetricas({ totalAlumnos: alumnosData.length, totalDeuda: deuda, ingresosMes: ingresosPeriodo, asistenciaHoy: conteoAsistencia || 0 })
       
-      // Historial (Top 10 del periodo)
       const ultimosPagos = [...pagosRaw]
         .sort((a,b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
         .slice(0, 10)
@@ -152,29 +147,28 @@ function Dashboard({ session, rolUsuario }) {
         })
       setHistorial(ultimosPagos)
 
-      // PROCESAR DATOS PARA LA GRÁFICA
+      // GRÁFICA CON NOMBRES EN ESPAÑOL
       let dataFinal = []
       if (modoDiario) {
-        // Gráfica de DÍAS (1, 2, 3... 31)
         const diasDelMes = new Date(filtroMes.split('-')[0], filtroMes.split('-')[1], 0).getDate();
         const mapaDias = {}
         for(let i=1; i<=diasDelMes; i++) mapaDias[i] = 0;
-        
         pagosRaw.forEach(p => {
-          const dia = new Date(p.fecha_pago).getDate() // Ojo: getDate usa hora local, puede variar por zona horaria. Para producción ideal usar UTC.
+          const dia = new Date(p.fecha_pago).getDate()
           if (mapaDias[dia] !== undefined) mapaDias[dia] += p.monto
         })
         dataFinal = Object.keys(mapaDias).map(d => ({ name: d, total: mapaDias[d] }))
       } else {
-        // Gráfica de MESES (ENE, FEB...) - Lógica anterior
         const mapaMeses = {}
         for (let i = 5; i >= 0; i--) {
           const d = new Date()
           d.setMonth(d.getMonth() - i)
-          mapaMeses[d.toLocaleString('es-ES', { month: 'short' }).toUpperCase()] = 0
+          // FORZAR ESPAÑOL MEXICO
+          const nombreMes = d.toLocaleString('es-MX', { month: 'short' }).toUpperCase().replace('.', '')
+          mapaMeses[nombreMes] = 0
         }
         pagosRaw.forEach(p => {
-          const key = new Date(p.fecha_pago).toLocaleString('es-ES', { month: 'short' }).toUpperCase()
+          const key = new Date(p.fecha_pago).toLocaleString('es-MX', { month: 'short' }).toUpperCase().replace('.', '')
           if (mapaMeses[key] !== undefined) mapaMeses[key] += p.monto
         })
         dataFinal = Object.keys(mapaMeses).map(key => ({ name: key, total: mapaMeses[key] }))
@@ -195,7 +189,6 @@ function Dashboard({ session, rolUsuario }) {
     return data.publicUrl
   }
 
-  // --- LOGICA ASISTENCIA (NUEVA) ---
   function toggleSeleccion(id) {
     if (seleccionados.includes(id)) setSeleccionados(seleccionados.filter(sid => sid !== id))
     else setSeleccionados([...seleccionados, id])
@@ -204,15 +197,8 @@ function Dashboard({ session, rolUsuario }) {
   function seleccionarTodosFiltrados() {
     const idsVisibles = alumnosFiltradosAsistencia.map(a => a.id)
     const yaEstanTodos = idsVisibles.every(id => seleccionados.includes(id))
-    
-    if (yaEstanTodos) {
-      // Desmarcar los visibles
-      setSeleccionados(seleccionados.filter(id => !idsVisibles.includes(id)))
-    } else {
-      // Agregar los que falten
-      const nuevos = idsVisibles.filter(id => !seleccionados.includes(id))
-      setSeleccionados([...seleccionados, ...nuevos])
-    }
+    if (yaEstanTodos) setSeleccionados(seleccionados.filter(id => !idsVisibles.includes(id)))
+    else { const nuevos = idsVisibles.filter(id => !seleccionados.includes(id)); setSeleccionados([...seleccionados, ...nuevos]) }
   }
 
   async function guardarAsistencia() {
@@ -253,15 +239,31 @@ function Dashboard({ session, rolUsuario }) {
     })
   }
 
-  function abrirFormularioCrear() { setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) }
-  function abrirFormularioEditar(a) { setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) }
+  // --- CRUD CON CAMPOS NUEVOS ---
+  function abrirFormularioCrear() { 
+    setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); 
+    setEdad(''); setTutor(''); setEmergencia(''); 
+    setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) 
+  }
+  
+  function abrirFormularioEditar(a) { 
+    setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); 
+    setEdad(a.edad || ''); setTutor(a.tutor || ''); setEmergencia(a.emergencia || '');
+    setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) 
+  }
 
   async function guardarAlumno(e) {
     e.preventDefault()
     const guardarPromesa = async () => {
       let urlFinal = fotoPreview
       if (archivoFoto) urlFinal = await subirFoto()
-      const datos = { nombre, telefono, cinta, monto_mensualidad: monto, activo: true, foto_url: urlFinal }
+      // AQUÍ GUARDAMOS LOS CAMPOS NUEVOS
+      const datos = { 
+        nombre, telefono, cinta, monto_mensualidad: monto, activo: true, foto_url: urlFinal,
+        edad: edad || null,
+        tutor: tutor || null,
+        emergencia: emergencia || null
+      }
       const { error } = modoEdicion ? await supabase.from('alumnos').update(datos).eq('id', idEdicion) : await supabase.from('alumnos').insert([datos])
       if (error) throw error
       setMostrarFormulario(false); fetchDatos()
@@ -280,9 +282,7 @@ function Dashboard({ session, rolUsuario }) {
   }
   
   const getIniciales = (n) => n.split(' ').map(c=>c[0]).join('').substring(0,2).toUpperCase()
-  
   const listaParaMostrar = vistaActual === 'inicio' ? alumnos.filter(a => !a.pagado) : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
-  // Filtro independiente para asistencia
   const alumnosFiltradosAsistencia = alumnos.filter(a => a.nombre.toLowerCase().includes(busquedaAsistencia.toLowerCase()))
 
   const MAX_WIDTH = '1000px';
@@ -307,11 +307,14 @@ function Dashboard({ session, rolUsuario }) {
     fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' },
     histItem: { padding: '12px 0', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' },
     btnDel: { background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex' },
-    // ESTILOS NUEVOS PARA LISTA DE ASISTENCIA
     listRow: { display:'flex', alignItems:'center', padding:'12px', borderBottom:'1px solid #f1f5f9', background:'white', cursor:'pointer' },
     checkbox: { width:'20px', height:'20px', borderRadius:'6px', border:'2px solid #cbd5e1', display:'flex', alignItems:'center', justifyContent:'center', marginRight:'15px', transition:'all 0.2s' },
     checked: { background:'#3b82f6', borderColor:'#3b82f6' },
-    filterInput: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff', color: '#1e293b' }
+    filterInput: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#fff', color: '#1e293b' },
+    // ESTILOS NUEVOS PARA INPUTS AGRUPADOS
+    formGroup: { display:'flex', gap:'10px', marginBottom: '8px' },
+    input: { width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxSizing: 'border-box', marginBottom:'8px' },
+    label: { fontSize:'12px', color:'#64748b', fontWeight:'bold', marginBottom:'4px', display:'block' }
   }
 
   const titulos = { inicio: 'Resumen', asistencia: 'Pasar Lista', alumnos: 'Directorio' }
@@ -332,15 +335,9 @@ function Dashboard({ session, rolUsuario }) {
             <>
               {rolUsuario === 'admin' && (
                 <>
-                  {/* FILTRO DE FECHA (REPORTES) */}
                   <div style={{display:'flex', justifyContent:'flex-end', marginBottom:'15px', alignItems:'center', gap:'10px'}}>
                     <span style={{fontSize:'12px', color:'#64748b', fontWeight:'bold'}}>Periodo:</span>
-                    <input 
-                      type="month" 
-                      value={filtroMes} 
-                      onChange={(e) => setFiltroMes(e.target.value)} 
-                      style={styles.filterInput} 
-                    />
+                    <input type="month" value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)} style={styles.filterInput} />
                     {filtroMes && <button onClick={()=>setFiltroMes('')} style={{fontSize:'12px', border:'none', background:'none', color:'#ef4444', cursor:'pointer'}}>Borrar</button>}
                   </div>
 
@@ -371,7 +368,7 @@ function Dashboard({ session, rolUsuario }) {
                       <div key={p.id} style={styles.histItem}>
                         <div>
                           <div style={{fontWeight:'600', color:'#1e293b'}}>{p.nombre_alumno}</div>
-                          <div style={{fontSize:'11px', color:'#94a3b8'}}>{new Date(p.fecha_pago).toLocaleDateString()} • {p.registrado_por ? p.registrado_por.split('@')[0] : 'Sistema'}</div>
+                          <div style={{fontSize:'11px', color:'#94a3b8'}}>{new Date(p.fecha_pago).toLocaleDateString('es-MX')} • {p.registrado_por ? p.registrado_por.split('@')[0] : 'Sistema'}</div>
                         </div>
                         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                           <div style={{color:'#10b981', fontWeight:'700'}}>+${p.monto}</div>
@@ -404,15 +401,13 @@ function Dashboard({ session, rolUsuario }) {
             </>
           )}
 
-          {/* --- VISTA: ASISTENCIA (MODO LISTA COMPACTA) --- */}
           {vistaActual === 'asistencia' && (
             <>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
                 <h3 style={{margin:0, fontSize:'16px'}}>Pasar Lista</h3>
-                <div style={{background:'#eff6ff', color:'#3b82f6', padding:'5px 10px', borderRadius:'8px', fontSize:'12px', fontWeight:'bold'}}>{new Date().toLocaleDateString()}</div>
+                <div style={{background:'#eff6ff', color:'#3b82f6', padding:'5px 10px', borderRadius:'8px', fontSize:'12px', fontWeight:'bold'}}>{new Date().toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'})}</div>
               </div>
 
-              {/* BUSCADOR EXCLUSIVO ASISTENCIA + SELECT ALL */}
               <div style={{display:'flex', gap:'10px', marginBottom:'15px'}}>
                 <input placeholder="Buscar para asistencia..." value={busquedaAsistencia} onChange={(e) => setBusquedaAsistencia(e.target.value)} style={{...styles.search, marginBottom:0}} />
                 <button onClick={seleccionarTodosFiltrados} style={{whiteSpace:'nowrap', background:'white', border:'1px solid #cbd5e1', borderRadius:'12px', padding:'0 15px', fontWeight:'bold', fontSize:'12px', color:'#64748b'}}>Todo</button>
@@ -478,26 +473,42 @@ function Dashboard({ session, rolUsuario }) {
 
         {mostrarFormulario && (
           <div style={{ position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center', zIndex:200 }}>
-            <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px' }}>
-              <h2 style={{marginTop:0, fontSize:'18px'}}>{modoEdicion?'Editar':'Nuevo'}</h2>
+            <div style={{ background:'white', padding:'25px', borderRadius:'16px', width:'90%', maxWidth:'400px', maxHeight:'90vh', overflowY:'auto' }}>
+              <h2 style={{marginTop:0, fontSize:'18px', color:'#1e293b'}}>{modoEdicion?'Editar':'Nuevo'}</h2>
               <form onSubmit={guardarAlumno}>
+                {/* FOTO */}
                 <div style={{textAlign:'center', marginBottom:'15px'}}>
                   <div style={{width:'80px', height:'80px', borderRadius:'50%', background:'#f1f5f9', margin:'0 auto 10px', display:'flex', justifyContent:'center', alignItems:'center', overflow:'hidden', border:'1px solid #e2e8f0'}}>
                     {fotoPreview || archivoFoto ? <img src={archivoFoto ? URL.createObjectURL(archivoFoto) : fotoPreview} style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <span style={{fontSize:'30px'}}>📷</span>}
                   </div>
-                  <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={{fontSize:'12px'}} />
+                  <input type="file" accept="image/*" onChange={e => setArchivoFoto(e.target.files[0])} style={{fontSize:'12px', width:'100%'}} />
                 </div>
-                <input style={styles.search} placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)} required />
-                <input style={styles.search} placeholder="Teléfono" value={telefono} onChange={e=>setTelefono(e.target.value)} type="number" />
-                <div style={{display:'flex', gap:'10px'}}>
-                  <select style={styles.search} value={cinta} onChange={e=>setCinta(e.target.value)}>{['Blanca','Amarilla','Verde','Azul','Roja','Negra'].map(c=><option key={c}>{c}</option>)}</select>
-                  <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
+
+                {/* DATOS BÁSICOS */}
+                <span style={styles.label}>DATOS PERSONALES</span>
+                <input style={styles.input} placeholder="Nombre Completo" value={nombre} onChange={e=>setNombre(e.target.value)} required />
+                <div style={styles.formGroup}>
+                  <input style={{...styles.input, flex:1}} placeholder="Edad" value={edad} onChange={e=>setEdad(e.target.value)} type="number" />
+                  <select style={{...styles.input, flex:1}} value={cinta} onChange={e=>setCinta(e.target.value)}>{['Blanca','Amarilla','Verde','Azul','Roja','Negra'].map(c=><option key={c}>{c}</option>)}</select>
                 </div>
-                <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                  <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
-                  <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
+
+                {/* DATOS DE CONTACTO */}
+                <span style={styles.label}><br/>CONTACTO Y PAGOS</span>
+                <input style={styles.input} placeholder="Celular (WhatsApp)" value={telefono} onChange={e=>setTelefono(e.target.value)} type="number" />
+                <input style={styles.input} placeholder="Monto Mensualidad ($)" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
+
+                {/* DATOS DE EMERGENCIA (Condicional visualmente) */}
+                {(edad && parseInt(edad) < 18) && <div style={{background:'#fff7ed', padding:'10px', borderRadius:'8px', marginBottom:'10px', border:'1px solid #fed7aa', fontSize:'12px', color:'#ea580c'}}>⚠️ Es menor de edad. Ingresa tutor.</div>}
+                
+                <span style={styles.label}><br/>EMERGENCIA / TUTOR</span>
+                <input style={styles.input} placeholder="Nombre Padre/Tutor" value={tutor} onChange={e=>setTutor(e.target.value)} />
+                <input style={styles.input} placeholder="Teléfono de Emergencia" value={emergencia} onChange={e=>setEmergencia(e.target.value)} type="number" />
+
+                <div style={{display:'flex', gap:'10px', marginTop:'20px'}}>
+                  <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'12px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
+                  <button type="submit" style={{flex:1, padding:'12px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
                 </div>
-                {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR</button>}
+                {modoEdicion && rolUsuario === 'admin' && <button type="button" onClick={() => {if(confirm("¿Baja?")) {supabase.from('alumnos').update({activo:false}).eq('id', idEdicion).then(() => {setMostrarFormulario(false);fetchDatos()})}}} style={{width:'100%', marginTop:'15px', background:'none', border:'none', color:'#ef4444', fontSize:'11px', cursor:'pointer'}}>ELIMINAR ALUMNO</button>}
               </form>
             </div>
           </div>
