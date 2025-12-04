@@ -33,7 +33,7 @@ function LoginScreen() {
 
   const styles = {
     container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif' },
-    card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '100%', maxWidth: '350px', textAlign: 'center' },
+    card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '90%', maxWidth: '350px', textAlign: 'center', boxSizing: 'border-box' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing:'border-box', fontSize: '16px' },
     btn: { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop:'10px' }
   }
@@ -112,19 +112,17 @@ function Dashboard({ session, rolUsuario }) {
     finally { setLoading(false) }
   }
 
-  // --- LOGICA FOTOS ---
   async function subirFoto() {
     if (!archivoFoto) return null
     const ext = archivoFoto.name.split('.').pop()
     const fileName = `${Date.now()}.${ext}`
-    // Asegúrate que tu bucket se llame 'avatars' en minúscula en Supabase
+    // IMPORTANTE: Asegúrate de que tu bucket en Supabase se llame 'avatars' (en minúscula)
     const { error } = await supabase.storage.from('avatars').upload(fileName, archivoFoto)
     if (error) throw error
     const { data } = supabase.storage.from('avatars').getPublicUrl(fileName)
     return data.publicUrl
   }
 
-  // --- CRUD ---
   function abrirFormularioCrear() { setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) }
   function abrirFormularioEditar(a) { setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) }
 
@@ -159,38 +157,57 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- ESTILOS RESPONSIVOS Y CORREGIDOS ---
+  // --- ESTILOS CORREGIDOS (Layout Seguro) ---
   const styles = {
-    // 1. ANCHO AUMENTADO Y BOX-SIZING
-    layout: { 
-      maxWidth: '800px', // Más ancho para PC
-      width: '100%', 
-      margin: '0 auto', 
-      padding: '20px', 
-      paddingBottom: '100px',
-      boxSizing: 'border-box' // Evita que se desborde
+    // 1. Contenedor Maestro: Evita desbordamiento y centra contenido
+    mainWrapper: {
+      background: '#f8fafc',
+      minHeight: '100vh',
+      width: '100%',
+      overflowX: 'hidden' // VITAL: Corta cualquier cosa que se salga horizontalmente
     },
     
-    // 2. GRID PARA LAS TARJETAS DE DINERO (Tamaños iguales)
+    // 2. Layout del Contenido: Ancho controlado (95%) y máximo (1000px)
+    layout: { 
+      width: '95%', 
+      maxWidth: '1000px', 
+      margin: '0 auto', 
+      paddingTop: '20px', 
+      paddingBottom: '100px', // Espacio para la barra de abajo
+      boxSizing: 'border-box'
+    },
+    
+    // 3. Grid para las tarjetas de dinero (Se adaptan sin romperse)
     statContainer: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', // Se adaptan solas
-      gap: '15px',
-      marginBottom: '20px'
+      gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', // Mínimo 110px, si hay espacio se estiran
+      gap: '12px',
+      marginBottom: '20px',
+      width: '100%'
     },
     
-    // Tarjetas Generales
+    statBox: { 
+      background: 'white', 
+      padding: '15px 10px', 
+      borderRadius: '16px', 
+      textAlign: 'center', 
+      border: '1px solid #f1f5f9', 
+      boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+    },
+
+    // Tarjetas de Alumnos
     card: { 
       background: 'white', 
       borderRadius: '16px', 
-      padding: '16px', 
+      padding: '15px', 
       marginBottom: '12px', 
       boxShadow: '0 2px 4px rgba(0,0,0,0.03)', 
       display: 'flex', 
       alignItems: 'center', 
       gap: '15px', 
       border: '1px solid #f1f5f9',
-      boxSizing: 'border-box' 
+      width: '100%', // Asegura que llene el contenedor padre
+      boxSizing: 'border-box' // Importante para que el padding no sume ancho
     },
     
     avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
@@ -204,10 +221,20 @@ function Dashboard({ session, rolUsuario }) {
       fontSize: '15px', 
       outline: 'none', 
       boxShadow: '0 2px 4px rgba(0,0,0,0.02)', 
-      boxSizing: 'border-box' // Importante para que no se salga
+      boxSizing: 'border-box'
     },
     
-    statBox: { background: 'white', padding: '15px', borderRadius: '16px', flex: 1, textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
+    // Contenedor de la gráfica
+    chartContainer: {
+      background: 'white',
+      padding: '15px',
+      borderRadius: '16px',
+      marginBottom: '25px',
+      border: '1px solid #f1f5f9',
+      height: '250px',
+      width: '100%',
+      boxSizing: 'border-box'
+    },
     
     btnFloat: { position:'fixed', bottom:'90px', right:'20px', background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50 },
     
@@ -218,11 +245,11 @@ function Dashboard({ session, rolUsuario }) {
   }
 
   return (
-    <div style={{background: '#f8fafc', minHeight: '100vh'}}>
+    <div style={styles.mainWrapper}>
       <Toaster richColors position="top-center" />
       
       {/* TOP BAR */}
-      <div style={{ background: 'white', padding: '15px 20px', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: 'white', padding: '15px 5%', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
           {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
         </div>
@@ -238,13 +265,14 @@ function Dashboard({ session, rolUsuario }) {
           <>
             {rolUsuario === 'admin' && (
               <>
-                {/* 3. USAMOS EL CONTENEDOR GRID AQUÍ */}
                 <div style={styles.statContainer}>
-                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>POR COBRAR</div></div>
+                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
                   <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
+                  {/* Tarjeta Extra para que el Grid se vea lleno en 3 columnas en PC */}
+                  <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.totalAlumnos}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ALUMNOS</div></div>
                 </div>
                 
-                <div style={{ background: 'white', padding: '20px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '200px' }}>
+                <div style={styles.chartContainer}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={datosGrafica}><Bar dataKey="total" fill="#3b82f6" radius={[4,4,4,4]} /><XAxis dataKey="name" hide /></BarChart>
                   </ResponsiveContainer>
@@ -325,7 +353,7 @@ function Dashboard({ session, rolUsuario }) {
                 <input style={styles.search} placeholder="$" value={monto} onChange={e=>setMonto(e.target.value)} type="number" />
               </div>
               <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
-                {/* 4. BOTÓN CANCELAR AHORA ES ROJO CLARO */}
+                {/* BOTÓN CANCELAR AHORA ES ROJO (CAMBIO SOLICITADO) */}
                 <button type="button" onClick={()=>setMostrarFormulario(false)} style={{flex:1, padding:'10px', background:'#fee2e2', color:'#ef4444', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>CANCELAR</button>
                 <button type="submit" style={{flex:1, padding:'10px', background:'#3b82f6', color:'white', border:'none', borderRadius:'8px', cursor:'pointer', fontWeight:'bold'}}>GUARDAR</button>
               </div>
