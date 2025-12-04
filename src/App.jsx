@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
-// --- ICONOS SVG ---
+// --- ICONOS ---
 const IconHome = ({ active }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? "#3b82f6" : "#94a3b8"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
 )
@@ -62,7 +62,7 @@ function LoginScreen() {
 
 // --- DASHBOARD ---
 function Dashboard({ session, rolUsuario }) {
-  const [vistaActual, setVistaActual] = useState('inicio') // 'inicio', 'asistencia', 'alumnos'
+  const [vistaActual, setVistaActual] = useState('inicio')
   const [alumnos, setAlumnos] = useState([])
   const [loading, setLoading] = useState(true)
   const [metricas, setMetricas] = useState({ totalDeuda: 0, totalAlumnos: 0, ingresosMes: 0, asistenciaHoy: 0 })
@@ -71,7 +71,7 @@ function Dashboard({ session, rolUsuario }) {
   const [busqueda, setBusqueda] = useState('')
   
   // Asistencia
-  const [seleccionados, setSeleccionados] = useState([]) // IDs para asistencia
+  const [seleccionados, setSeleccionados] = useState([])
 
   // Estados Formulario
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
@@ -91,19 +91,18 @@ function Dashboard({ session, rolUsuario }) {
       seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 5)
       seisMesesAtras.setDate(1)
       
-      const { data: pagosRaw } = await supabase.from('pagos').select('id, monto, alumno_id, fecha_pago').gte('fecha_pago', seisMesesAtras.toISOString())
+      // TRAEMOS EL NUEVO CAMPO 'registrado_por'
+      const { data: pagosRaw } = await supabase.from('pagos').select('id, monto, alumno_id, fecha_pago, registrado_por').gte('fecha_pago', seisMesesAtras.toISOString())
       
-      // Obtener asistencia de hoy
       const fechaHoySQL = hoy.toISOString().split('T')[0]
       const { count: conteoAsistencia } = await supabase.from('asistencias').select('*', { count: 'exact', head: true }).eq('fecha', fechaHoySQL)
 
-      // Historial Reciente (con JOIN manual simple)
       const ultimosPagos = pagosRaw
         .sort((a,b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
         .slice(0, 10)
         .map(p => {
           const alum = alumnosData.find(a => a.id === p.alumno_id)
-          return { ...p, nombre_alumno: alum ? alum.nombre : 'Desconocido' }
+          return { ...p, nombre_alumno: alum ? alum.nombre : 'Alumno Eliminado' }
         })
       setHistorial(ultimosPagos)
 
@@ -145,7 +144,6 @@ function Dashboard({ session, rolUsuario }) {
     return data.publicUrl
   }
 
-  // --- ASISTENCIA ---
   function toggleSeleccion(id) {
     if (seleccionados.includes(id)) {
       setSeleccionados(seleccionados.filter(sid => sid !== id))
@@ -156,22 +154,26 @@ function Dashboard({ session, rolUsuario }) {
 
   async function guardarAsistencia() {
     if (seleccionados.length === 0) return toast.warning("Selecciona al menos un alumno")
-    
     const inserts = seleccionados.map(id => ({ alumno_id: id }))
     const { error } = await supabase.from('asistencias').insert(inserts)
-    
     if (error) toast.error("Error al guardar")
-    else {
-      toast.success(`${seleccionados.length} asistencias guardadas`)
-      setSeleccionados([])
-      fetchDatos()
-    }
+    else { toast.success(`${seleccionados.length} asistencias guardadas`); setSeleccionados([]); fetchDatos() }
   }
 
-  // --- PAGOS ---
   function confirmarPago(id, monto) {
     toast(`¿Cobrar $${monto}?`, {
-      action: { label: "CONFIRMAR", onClick: async () => { const { error } = await supabase.from('pagos').insert([{alumno_id:id, monto}]); if (!error) { fetchDatos(); toast.success(`Pago registrado`) } } }
+      action: {
+        label: "CONFIRMAR",
+        onClick: async () => {
+          // AQUÍ GUARDAMOS QUIÉN HIZO EL PAGO (session.user.email)
+          const { error } = await supabase.from('pagos').insert([{
+            alumno_id: id, 
+            monto: monto,
+            registrado_por: session.user.email 
+          }])
+          if (!error) { fetchDatos(); toast.success(`Pago registrado`) }
+        }
+      }
     })
   }
 
@@ -189,7 +191,6 @@ function Dashboard({ session, rolUsuario }) {
     })
   }
 
-  // --- CRUD ALUMNOS ---
   function abrirFormularioCrear() { setModoEdicion(false); setNombre(''); setTelefono(''); setCinta('Blanca'); setMonto(600); setArchivoFoto(null); setFotoPreview(null); setMostrarFormulario(true) }
   function abrirFormularioEditar(a) { setModoEdicion(true); setIdEdicion(a.id); setNombre(a.nombre); setTelefono(a.telefono||''); setCinta(a.cinta); setMonto(a.monto_mensualidad); setArchivoFoto(null); setFotoPreview(a.foto_url); setMostrarFormulario(true) }
 
@@ -218,7 +219,6 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- DISEÑO ---
   const MAX_WIDTH = '1000px';
 
   const styles = {
@@ -244,7 +244,6 @@ function Dashboard({ session, rolUsuario }) {
     btnDel: { background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex' }
   }
 
-  // TITULOS VISTAS
   const titulos = { inicio: 'Resumen', asistencia: 'Pasar Lista', alumnos: 'Directorio' }
 
   return (
@@ -265,7 +264,6 @@ function Dashboard({ session, rolUsuario }) {
                   <div style={styles.statContainer}>
                     <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#ef4444'}}>${metricas.totalDeuda}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>DEUDA</div></div>
                     <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#10b981'}}>${metricas.ingresosMes}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>INGRESOS</div></div>
-                    {/* NUEVO KPI DE ASISTENCIA */}
                     <div style={styles.statBox}><div style={{fontSize:'20px', fontWeight:'800', color:'#3b82f6'}}>{metricas.asistenciaHoy}</div><div style={{fontSize:'10px', color:'#94a3b8', fontWeight:'700'}}>ASIST. HOY</div></div>
                   </div>
                   
@@ -281,18 +279,20 @@ function Dashboard({ session, rolUsuario }) {
                     </ResponsiveContainer>
                   </div>
 
-                  {/* NUEVO: HISTORIAL CON BORRADO */}
+                  {/* HISTORIAL MEJORADO: CON NOMBRE DE QUIEN COBRÓ */}
                   <div style={{background:'white', padding:'20px', borderRadius:'16px', marginBottom:'25px'}}>
                     <h4 style={{margin:'0 0 15px 0', fontSize:'14px', color:'#64748b'}}>ÚLTIMOS PAGOS</h4>
                     {historial.map(p => (
                       <div key={p.id} style={styles.histItem}>
                         <div>
-                          <div style={{fontWeight:'600'}}>{p.nombre_alumno}</div>
-                          <div style={{fontSize:'11px', color:'#94a3b8'}}>{new Date(p.fecha_pago).toLocaleDateString()}</div>
+                          <div style={{fontWeight:'600', color:'#1e293b'}}>{p.nombre_alumno}</div>
+                          <div style={{fontSize:'11px', color:'#94a3b8'}}>
+                            {/* MOSTRAR QUIEN COBRÓ */}
+                            {new Date(p.fecha_pago).toLocaleDateString()} • {p.registrado_por ? p.registrado_por.split('@')[0] : 'Sistema'}
+                          </div>
                         </div>
                         <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
                           <div style={{color:'#10b981', fontWeight:'700'}}>+${p.monto}</div>
-                          {/* BOTÓN BASURA */}
                           <button onClick={() => borrarPago(p.id)} style={styles.btnDel}><IconTrash /></button>
                         </div>
                       </div>
@@ -301,8 +301,8 @@ function Dashboard({ session, rolUsuario }) {
                 </>
               )}
 
+              {/* El resto de la vista inicio igual... */}
               <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
-              
               {listaParaMostrar.length === 0 ? (
                 <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo el mundo está al día!</p></div>
               ) : (
@@ -323,7 +323,7 @@ function Dashboard({ session, rolUsuario }) {
             </>
           )}
 
-          {/* --- NUEVA VISTA: ASISTENCIA --- */}
+          {/* --- VISTA: ASISTENCIA --- */}
           {vistaActual === 'asistencia' && (
             <>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'20px'}}>
@@ -348,7 +348,6 @@ function Dashboard({ session, rolUsuario }) {
                 })}
               </div>
 
-              {/* Botón flotante para guardar asistencia */}
               <div style={styles.btnFloatWrapper}>
                 <div style={styles.btnFloatInner}>
                   <button onClick={guardarAsistencia} style={{...styles.btnFloat, width:'auto', padding:'0 20px', borderRadius:'30px', fontSize:'14px', fontWeight:'bold'}}>
@@ -359,6 +358,7 @@ function Dashboard({ session, rolUsuario }) {
             </>
           )}
 
+          {/* --- VISTA: ALUMNOS --- */}
           {vistaActual === 'alumnos' && (
             <>
               <input placeholder="Buscar alumno..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={styles.search} />
