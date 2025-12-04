@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+// IMPORTANTE: Asegurarnos de importar todos los componentes de la gráfica
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Toaster, toast } from 'sonner'
 
@@ -32,8 +33,7 @@ function LoginScreen() {
   }
 
   const styles = {
-    // Forzamos al login a ocupar toda la pantalla
-    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0, position: 'fixed', top: 0, left: 0 },
+    container: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc', fontFamily: 'sans-serif', margin: 0, position: 'fixed', top: 0, left: 0, width: '100%' },
     card: { background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '90%', maxWidth: '350px', textAlign: 'center', boxSizing: 'border-box' },
     input: { width: '100%', padding: '12px', margin: '8px 0', borderRadius: '8px', border: '1px solid #cbd5e1', boxSizing:'border-box', fontSize: '16px' },
     btn: { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop:'10px' }
@@ -154,112 +154,25 @@ function Dashboard({ session, rolUsuario }) {
     ? alumnos.filter(a => !a.pagado) 
     : alumnos.filter(a => a.nombre.toLowerCase().includes(busqueda.toLowerCase()))
 
-  // --- VARIABLES DE DISEÑO ---
+  // --- DISEÑO ---
   const MAX_WIDTH = '1000px';
 
   const styles = {
-    // 1. FONDO GLOBAL: Asegura que cubra el 100% de la pantalla (quita lo negro)
-    globalWrapper: {
-      minHeight: '100vh',
-      width: '100%',
-      backgroundColor: '#f8fafc',
-      margin: 0,
-      padding: 0,
-      position: 'absolute', // Forzamos posición
-      top: 0,
-      left: 0,
-      overflowX: 'hidden'
-    },
-
-    // 2. CONTENEDOR CENTRADO: Aquí es donde vive tu app
-    appCentered: {
-      width: '100%',
-      maxWidth: MAX_WIDTH,
-      margin: '0 auto', // Esto centra la columna en PC
-      background: '#f8fafc',
-      minHeight: '100vh',
-      position: 'relative' // Referencia para fixed
-    },
-
-    // 3. TOP BAR
-    topBar: {
-      background: 'white',
-      padding: '15px 20px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      borderBottom: '1px solid #f1f5f9',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      boxSizing: 'border-box'
-    },
-
-    // 4. CONTENT
-    content: {
-      padding: '20px',
-      paddingBottom: '100px',
-      width: '100%',
-      boxSizing: 'border-box'
-    },
-
-    // 5. BOTTOM BAR (Ajustada para no desbordar en PC)
-    bottomBarContainer: {
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      width: '100%',
-      zIndex: 100,
-      display: 'flex',
-      justifyContent: 'center', // Centra la barra interna
-      pointerEvents: 'none' // Deja pasar clicks a los lados en PC
-    },
-    bottomBarInner: {
-      width: '100%',
-      maxWidth: MAX_WIDTH,
-      background: 'white',
-      borderTop: '1px solid #e2e8f0',
-      padding: '12px 0',
-      paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)',
-      pointerEvents: 'auto' // Reactiva clicks
-    },
-
-    // ELEMENTOS
+    globalWrapper: { minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', margin: 0, padding: 0, position: 'absolute', top: 0, left: 0, overflowX: 'hidden' },
+    appCentered: { width: '100%', maxWidth: MAX_WIDTH, margin: '0 auto', background: '#f8fafc', minHeight: '100vh', position: 'relative' },
+    topBar: { background: 'white', padding: '15px 20px', position: 'sticky', top: 0, zIndex: 50, borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', boxSizing: 'border-box' },
+    content: { padding: '20px', paddingBottom: '100px', width: '100%', boxSizing: 'border-box' },
+    bottomBarContainer: { position: 'fixed', bottom: 0, left: 0, width: '100%', zIndex: 100, display: 'flex', justifyContent: 'center', pointerEvents: 'none' },
+    bottomBarInner: { width: '100%', maxWidth: MAX_WIDTH, background: 'white', borderTop: '1px solid #e2e8f0', padding: '12px 0', paddingBottom: 'max(12px, env(safe-area-inset-bottom))', display: 'flex', justifyContent: 'space-around', alignItems: 'center', boxShadow: '0 -4px 6px -1px rgba(0,0,0,0.05)', pointerEvents: 'auto' },
     statContainer: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', marginBottom: '20px' },
     statBox: { background: 'white', padding: '15px', borderRadius: '16px', textAlign: 'center', border: '1px solid #f1f5f9', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' },
     card: { background: 'white', borderRadius: '16px', padding: '15px', marginBottom: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #f1f5f9' },
     avatar: { width: '48px', height: '48px', borderRadius: '50%', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', fontSize: '16px', flexShrink: 0, objectFit: 'cover' },
     search: { width: '100%', padding: '16px', marginBottom: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', fontSize: '15px', outline: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', boxSizing: 'border-box' },
-    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '250px' },
-    
-    // Botón flotante corregido
-    btnFloatWrapper: {
-      position: 'fixed',
-      bottom: '90px',
-      left: 0,
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'center',
-      pointerEvents: 'none',
-      zIndex: 50
-    },
-    btnFloatInner: {
-      width: '100%',
-      maxWidth: MAX_WIDTH,
-      display: 'flex',
-      justifyContent: 'flex-end',
-      paddingRight: '20px',
-      boxSizing: 'border-box'
-    },
-    btnFloat: { 
-      background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents: 'auto' 
-    },
-    
+    chartContainer: { background: 'white', padding: '15px', borderRadius: '16px', marginBottom: '25px', border: '1px solid #f1f5f9', height: '300px', width: '100%', boxSizing: 'border-box' },
+    btnFloatWrapper: { position: 'fixed', bottom: '90px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 },
+    btnFloatInner: { width: '100%', maxWidth: MAX_WIDTH, display: 'flex', justifyContent: 'flex-end', paddingRight: '20px', boxSizing: 'border-box' },
+    btnFloat: { background:'#3b82f6', color:'white', width:'56px', height:'56px', borderRadius:'50%', border:'none', fontSize:'24px', boxShadow:'0 4px 12px rgba(59,130,246,0.4)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', pointerEvents: 'auto' },
     navItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', background:'none', border:'none', fontSize:'10px', fontWeight:'600', cursor:'pointer' },
     fileInput: { marginBottom: '15px', fontSize: '12px', width: '100%' }
   }
@@ -269,17 +182,11 @@ function Dashboard({ session, rolUsuario }) {
       <div style={styles.appCentered}>
         <Toaster richColors position="top-center" />
         
-        {/* TOP BAR */}
         <div style={styles.topBar}>
-          <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>
-            {vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}
-          </div>
-          <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
-            <IconLogout />
-          </button>
+          <div style={{ fontWeight: '800', fontSize: '18px', color: '#1e293b' }}>{vistaActual === 'inicio' ? 'Resumen' : 'Directorio'}</div>
+          <button onClick={cerrarSesion} style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}><IconLogout /></button>
         </div>
 
-        {/* CONTENIDO */}
         <div style={styles.content}>
           {vistaActual === 'inicio' && (
             <>
@@ -292,8 +199,15 @@ function Dashboard({ session, rolUsuario }) {
                   </div>
                   
                   <div style={styles.chartContainer}>
+                    {/* --- AQUÍ ESTÁ LA CORRECCIÓN: GRÁFICA COMPLETA --- */}
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={datosGrafica}><Bar dataKey="total" fill="#3b82f6" radius={[4,4,4,4]} /><XAxis dataKey="name" hide /></BarChart>
+                      <BarChart data={datosGrafica} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                        <YAxis tick={{fontSize: 12, fill: '#94a3b8'}} axisLine={false} tickLine={false} tickFormatter={(v)=>`$${v}`} />
+                        <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius:'12px', border:'none', boxShadow:'0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                        <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </>
@@ -302,7 +216,7 @@ function Dashboard({ session, rolUsuario }) {
               <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#64748b', textTransform:'uppercase', letterSpacing:'1px' }}>Pendientes ({listaParaMostrar.length})</h3>
               
               {listaParaMostrar.length === 0 ? (
-                <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo el mundo está al día!</p></div>
+                <div style={{textAlign:'center', padding:'40px', color:'#94a3b8'}}><div style={{fontSize:'40px'}}>🎉</div><p>¡Todo al día!</p></div>
               ) : (
                 listaParaMostrar.map((a) => (
                   <div key={a.id} style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
@@ -334,8 +248,6 @@ function Dashboard({ session, rolUsuario }) {
                   <div style={{fontSize:'20px', color:'#cbd5e1'}}>›</div>
                 </div>
               ))}
-              
-              {/* BOTÓN FLOTANTE DENTRO DEL LAYOUT SEGURO */}
               <div style={styles.btnFloatWrapper}>
                 <div style={styles.btnFloatInner}>
                   <button onClick={abrirFormularioCrear} style={styles.btnFloat}>+</button>
@@ -345,7 +257,6 @@ function Dashboard({ session, rolUsuario }) {
           )}
         </div>
 
-        {/* BOTTOM BAR DENTRO DEL LAYOUT SEGURO */}
         <div style={styles.bottomBarContainer}>
           <div style={styles.bottomBarInner}>
             <button onClick={() => setVistaActual('inicio')} style={{...styles.navItem, color: vistaActual === 'inicio' ? '#3b82f6' : '#94a3b8'}}>
